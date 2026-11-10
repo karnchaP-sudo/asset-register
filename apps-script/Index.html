@@ -201,7 +201,8 @@ dl.facts dd{margin:0;font-weight:500;overflow-wrap:anywhere;font-variant-numeric
     <span class="prbtn" id="sync" data-state="busy" title="สถานะการบันทึกลง Google Sheet"><i></i><span>กำลังโหลด…</span></span>
   </div>
 </header>
-<main class="wrap" id="app"></main>
+<main class="wrap" id="app"><section class="card empty"><h2>กำลังเริ่มระบบ…</h2><p class="note" id="bootnote">ถ้าค้างที่ข้อความนี้นาน แคปหน้าจอส่งให้ผู้ดูแลระบบ</p></section></main>
+<script>(function(){function show(t){var a=document.getElementById("app");if(a)a.innerHTML='<section class="card"><h2>เกิดข้อผิดพลาดในหน้าเว็บ</h2><p class="note">แคปหน้าจอนี้ส่งให้ผู้ดูแลระบบ</p><pre style="white-space:pre-wrap;font-size:12px">'+String(t).replace(/[<&]/g,function(c){return c=="<"?"&lt;":"&amp;";})+'</pre></section>';}window.addEventListener("error",function(e){show((e.message||e)+" @ "+e.lineno+":"+e.colno);});window.addEventListener("unhandledrejection",function(e){show("Promise: "+(e.reason&&e.reason.message||e.reason));});})();</script>
 <div id="layer"></div>
 <div id="toast" hidden></div>
 
@@ -2588,8 +2589,10 @@ function save(){
   return true;
 }
 function boot(){
-  $('#app').innerHTML = '<section class="card empty"><h2>กำลังโหลดข้อมูลจาก Google Sheet…</h2></section>';
-  gs('getState').then(s => {
+  $('#app').innerHTML = '<section class="card empty"><h2>กำลังโหลดข้อมูลจาก Google Sheet…</h2><p class="note" id="slow"></p></section>';
+  const t0 = Date.now(), slow = setInterval(() => { const el = $('#slow'); if (!el) return clearInterval(slow); el.textContent = 'รอแล้ว ' + Math.round((Date.now() - t0) / 1000) + ' วินาที' + (Date.now() - t0 > 20000 ? ' ถ้าเกิน 1 นาที ลองรีเฟรชหน้า หรือเปิดชีตแล้วดูว่ารัน setup แล้วหรือยัง' : ''); }, 1000);
+  let p; try { p = gs('getState'); } catch(e){ p = Promise.reject(e); }
+  p.then(s => { clearInterval(slow);
     const view = state.view;
     state = Object.assign(seed(), s, {view});
     if (!state.cats.length) state.cats = JSON.parse(JSON.stringify(DEFAULT_CATS));
@@ -2599,6 +2602,7 @@ function boot(){
     snapshot(); BOOTED = true; setSync('on', USER ? USER.split('@')[0] : 'เชื่อมต่อแล้ว');
     render(); loadPhotos();
   }).catch(e => {
+    clearInterval(slow);
     setSync('off', 'โหลดไม่สำเร็จ');
     $('#app').innerHTML = `<section class="card empty"><h2>โหลดข้อมูลไม่สำเร็จ</h2><p class="note">${esc(e && e.message || e)}</p><p class="note">ตรวจว่าเปิดสิทธิ์แก้ไข Google Sheet ให้บัญชีนี้แล้ว จากนั้นรีเฟรชหน้า</p></section>`;
   });
