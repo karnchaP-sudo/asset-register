@@ -156,14 +156,16 @@ function decode(h){
 }
 function msg(t, err){ const m = $('#msg'); m.textContent = t; m.className = 'note' + (err ? ' err' : ''); }
 function st(s, t){ const e = $('#st'); e.dataset.s = s; e.querySelector('span').textContent = t; }
-function pages(){ return pagesFor(ITEMS); }
-function jobs(){ const out = []; pages().forEach(p => { for (let k = 0; k < COPIES; k++) out.push(p); }); return out; }
+// copies are repeated per label before pairing, so a 2-up roll is filled: A A | A B | B B ...
+function expanded(){ const out = []; ITEMS.forEach(a => { for (let k = 0; k < COPIES; k++) out.push(a); }); return out; }
+function pages(){ return pagesFor(expanded()); }
+function jobs(){ return pages(); }
 async function preview(){
   await fontsReady(ITEMS);
   const ps = pages(), g = $('#grid'); g.innerHTML = '';
   ps.slice(0, 60).forEach(p => { const c = pageCanvas(p); c.setAttribute('aria-label', p.filter(Boolean).map(x => x.code).join(', ')); g.appendChild(c); });
   $('#more').textContent = ps.length > 60 ? `แสดงตัวอย่าง 60 แผ่นแรก จากทั้งหมด ${ps.length} แผ่น` : '';
-  $('#sum').textContent = `${ITEMS.length} ดวง · ${ps.length} แผ่น${COPIES > 1 ? ` × ${COPIES} ชุด = ${ps.length * COPIES} แผ่น` : ''} · ${CFG.size === '50x30' ? '50 × 30 มม.' : '50 × 15 มม. 2 ดวงต่อแผ่น'}`;
+  $('#sum').textContent = `${ITEMS.length} รายการ${COPIES > 1 ? ` × ${COPIES} ชุด` : ''} = ${ITEMS.length * COPIES} ดวง · ${ps.length} แผ่น · ${CFG.size === '50x30' ? '50 × 30 มม.' : '50 × 15 มม. 2 ดวงต่อแผ่น'}`;
 }
 let client = null, busy = false;
 function supportMsg(){
