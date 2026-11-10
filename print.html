@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>พิมพ์ป้ายทรัพย์สิน</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{--bg:#f3f6f5;--surface:#fff;--ink:#16211d;--muted:#5a6a64;--line:#dbe3e0;--accent:#1c6a56;--accent-ink:#fff;--good:#2b7a49;--warn:#9a5a12;--bad:#b03636;--sunk:#eaf0ee}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121816;--surface:#1a2220;--ink:#e6eeeb;--muted:#9aaba5;--line:#2b3633;--accent:#5fc4a5;--accent-ink:#0d1a16;--sunk:#202a27}}
+:root[data-theme="dark"]{--bg:#121816;--surface:#1a2220;--ink:#e6eeeb;--muted:#9aaba5;--line:#2b3633;--accent:#5fc4a5;--accent-ink:#0d1a16;--sunk:#202a27}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans Thai",system-ui,sans-serif;font-size:15px;line-height:1.5}
+.wrap{max-width:980px;margin:0 auto;padding:20px 16px 60px;display:grid;gap:16px}
+h1{font-size:22px;margin:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+.f{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+.f select,.f input{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+.btn{font:inherit;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:9px 16px;cursor:pointer}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn:disabled{opacity:.5;cursor:default}
+.note{color:var(--muted);font-size:13px}
+.st{display:inline-flex;align-items:center;gap:8px;font-size:14px}
+.st i{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+.st[data-s="on"] i{background:var(--good)}.st[data-s="busy"] i{background:var(--warn)}.st[data-s="err"] i{background:var(--bad)}
+.prog{height:8px;border-radius:99px;background:var(--sunk);overflow:hidden}.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(200px,100%),1fr));gap:10px}
+.grid canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:#fff;display:block}
+.err{color:var(--bad)}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div><h1>พิมพ์ป้ายทรัพย์สิน</h1><p class="note" id="sum" style="margin:4px 0 0"></p></div>
+  <section class="card" id="box">
+    <div class="row">
+      <label class="f">ขนาดป้าย<select id="size"><option value="50x30">50 × 30 มม. แบบเต็ม</option><option value="50x15x2">50 × 15 มม. แบบย่อ (2 ดวงต่อแผ่น)</option></select></label>
+      <label class="f">ความเข้ม<input type="number" id="density" min="1" max="5" style="width:80px"></label>
+      <label class="f">โหมดคำสั่งพิมพ์<select id="task"><option value="auto">อัตโนมัติ</option><option>B1</option><option>D110</option><option>B21_V1</option><option>D110M_V4</option><option>D11_V1</option></select></label>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn" id="connect">เชื่อมต่อเครื่องพิมพ์</button>
+      <button class="btn pri" id="print" disabled>พิมพ์ทั้งหมด</button>
+      <span class="st" id="st" data-s="off"><i></i><span>ยังไม่เชื่อมต่อ</span></span>
+    </div>
+    <div class="prog" style="margin-top:14px"><i id="bar"></i></div>
+    <p class="note" id="msg" style="margin:8px 0 0">ใช้ Chrome หรือ Edge บนคอมพิวเตอร์หรือ Android เปิด Bluetooth และเปิดเครื่อง NIIMBOT แล้วกดเชื่อมต่อ</p>
+  </section>
+  <section><div class="grid" id="grid"></div><p class="note" id="more"></p></section>
+</main>
+<script src="vendor/qrcode-generator-1.4.4.js"></script>
+<script src="vendor/niimbluelib-0.47.1.min.js"></script>
+<script>
+(function(){
+const $ = s => document.querySelector(s);
+let CFG = {size:'50x30', density:3, type:1, task:'auto'};
+const L = () => CFG;
+let ITEMS = [];
+const PX = 8; // 203 dpi ≈ 8 dots per mm
+const PR = {client:null, busy:false, name:''};
+const F_TH = '"IBM Plex Sans Thai", Tahoma, sans-serif', F_MONO = '"IBM Plex Mono", "Courier New", monospace';
+
+async function fontsReady(list){
+  const txt = list.map(a => [a.code, a.name, a.branch].join(' ')).join(' ') + ' ทรัพย์สินของบริษัท';
+  try { await Promise.all(['400 18px ' + F_TH, '600 18px ' + F_TH, '600 24px ' + F_MONO].map(f => document.fonts.load(f, txt))); } catch(e) {}
+}
+function fitText(ctx, text, maxW, size, weight, family, min){
+  let s = size; ctx.font = `${weight} ${s}px ${family}`;
+  while (s > min && ctx.measureText(text).width > maxW){ s--; ctx.font = `${weight} ${s}px ${family}`; }
+  return s;
+}
+function ellipsize(ctx, text, maxW){
+  if (ctx.measureText(text).width <= maxW) return text;
+  const parts = Array.from(text); while (parts.length && ctx.measureText(parts.join('') + '…').width > maxW) parts.pop();
+  return parts.join('') + '…';
+}
+function wrapLines(ctx, text, maxW, maxLines){
+  const seg = (typeof Intl !== 'undefined' && Intl.Segmenter) ? Array.from(new Intl.Segmenter('th', {granularity:'word'}).segment(text), x => x.segment) : text.split(/(\s+)/);
+  const lines = []; let line = '';
+  for (let i = 0; i < seg.length; i++){
+    const tryL = line + seg[i];
+    if (ctx.measureText(tryL).width <= maxW || !line){ line = tryL; continue; }
+    lines.push(line.trim()); line = seg[i].trimStart();
+    if (lines.length === maxLines - 1){ line = seg.slice(i).join('').trim(); break; }
+  }
+  if (line) lines.push(line.trim());
+  if (lines.length > maxLines) lines.length = maxLines;
+  const last = lines.length - 1; if (last >= 0) lines[last] = ellipsize(ctx, lines[last], maxW);
+  return lines;
+}
+function drawQRAt(ctx, text, x, y, size){
+  const q = qrcode(0, 'M'); q.addData(text); q.make();
+  const n = q.getModuleCount(), cell = Math.floor(size / n), off = Math.floor((size - cell * n) / 2);
+  ctx.fillStyle = '#000';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) ctx.fillRect(x + off + c*cell, y + off + r*cell, cell, cell);
+}
+function roundRect(ctx, x, y, w, h, r){ ctx.beginPath(); ctx.moveTo(x+r, y); ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r); ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r); ctx.closePath(); }
+
+/* Full label 50×30 mm: border, QR left, four text lines right (same design as the sample sticker). */
+function drawFull(ctx, a, ox, oy){
+  const W = 50*PX, H = 30*PX;
+  ctx.lineWidth = 3; ctx.strokeStyle = '#000'; roundRect(ctx, ox+14+1.5, oy+14+1.5, W-28-3, H-28-3, 14); ctx.stroke();
+  const q = 140, qx = ox + 14 + 3 + 12, qy = oy + (H - q)/2;
+  drawQRAt(ctx, a.code, qx, qy, q);
+  const tx = qx + q + 12, tw = ox + W - 14 - 3 - 10 - tx;
+  ctx.fillStyle = '#000'; ctx.textBaseline = 'alphabetic';
+  ctx.font = `400 17px ${F_TH}`; const small = ellipsize(ctx, 'ทรัพย์สินของบริษัท', tw);
+  const cs = fitText(ctx, a.code, tw, 25, 600, F_MONO, 16);
+  ctx.font = `400 19px ${F_TH}`; const nm = wrapLines(ctx, a.name || '', tw, 2);
+  ctx.font = `600 18px ${F_TH}`; const br = ellipsize(ctx, a.branch || '', tw);
+  const lh = [24, cs + 8, ...nm.map(() => 24), 24], total = lh.reduce((x,y)=>x+y, 0) + 6;
+  let y = oy + (H - total)/2;
+  ctx.font = `400 17px ${F_TH}`; y += lh[0]; ctx.fillText(small, tx, y - 6);
+  ctx.font = `600 ${cs}px ${F_MONO}`; y += lh[1]; ctx.fillText(a.code, tx, y - 7);
+  ctx.font = `400 19px ${F_TH}`; nm.forEach(l => { y += 24; ctx.fillText(l, tx, y - 5); });
+  ctx.font = `600 18px ${F_TH}`; y += 24 + 6; ctx.fillText(br, tx, y - 5);
+}
+/* Compact label 50×15 mm: QR left, code / name / branch right. */
+function drawCompact(ctx, a, ox, oy){
+  const W = 50*PX, H = 15*PX, q = 96, qx = ox + 14, qy = oy + (H - q)/2;
+  drawQRAt(ctx, a.code, qx, qy, q);
+  const tx = qx + q + 12, tw = ox + W - 12 - tx;
+  ctx.fillStyle = '#000'; ctx.textBaseline = 'alphabetic';
+  const cs = fitText(ctx, a.code, tw, 26, 600, F_MONO, 16);
+  ctx.fillText(a.code, tx, oy + 38);
+  ctx.font = `400 18px ${F_TH}`; ctx.fillText(ellipsize(ctx, a.name || '', tw), tx, oy + 68);
+  ctx.font = `600 16px ${F_TH}`; ctx.fillText(ellipsize(ctx, a.branch || '', tw), tx, oy + 96);
+}
+/* One printed page = 50×30 mm. Full: one asset. Compact: two assets stacked. */
+function pageCanvas(items){
+  const c = document.createElement('canvas'); c.width = 50*PX; c.height = 30*PX;
+  const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+  if (L().size === '50x30') drawFull(ctx, items[0], 0, 0);
+  else items.forEach((a, i) => a && drawCompact(ctx, a, 0, i * 15*PX));
+  // thermal printers have no grey: threshold to pure black / white
+  const img = ctx.getImageData(0, 0, c.width, c.height), d = img.data;
+  for (let i = 0; i < d.length; i += 4){ const v = (d[i]*299 + d[i+1]*587 + d[i+2]*114) / 1000 < 150 ? 0 : 255; d[i] = d[i+1] = d[i+2] = v; d[i+3] = 255; }
+  ctx.putImageData(img, 0, 0);
+  return c;
+}
+function pagesFor(list){
+  if (L().size === '50x30') return list.map(a => [a]);
+  const out = []; for (let i = 0; i < list.length; i += 2) out.push([list[i], list[i+1]]); return out;
+}
+
+function decode(h){
+  h = h.replace(/^#/, '').replace(/-/g, '+').replace(/_/g, '/');
+  while (h.length % 4) h += '=';
+  return JSON.parse(decodeURIComponent(escape(atob(h))));
+}
+function msg(t, err){ const m = $('#msg'); m.textContent = t; m.className = 'note' + (err ? ' err' : ''); }
+function st(s, t){ const e = $('#st'); e.dataset.s = s; e.querySelector('span').textContent = t; }
+function pages(){ return pagesFor(ITEMS); }
+async function preview(){
+  await fontsReady(ITEMS);
+  const ps = pages(), g = $('#grid'); g.innerHTML = '';
+  ps.slice(0, 60).forEach(p => { const c = pageCanvas(p); c.setAttribute('aria-label', p.filter(Boolean).map(x => x.code).join(', ')); g.appendChild(c); });
+  $('#more').textContent = ps.length > 60 ? `แสดงตัวอย่าง 60 แผ่นแรก จากทั้งหมด ${ps.length} แผ่น` : '';
+  $('#sum').textContent = `${ITEMS.length} ดวง · ${ps.length} แผ่น · ${CFG.size === '50x30' ? '50 × 30 มม.' : '50 × 15 มม. 2 ดวงต่อแผ่น'}`;
+}
+let client = null, busy = false;
+function supportMsg(){
+  if (!window.isSecureContext) return 'ต้องเปิดหน้านี้ผ่าน https';
+  if (!navigator.bluetooth) return 'เบราว์เซอร์นี้ใช้ Bluetooth ไม่ได้ ให้เปิดด้วย Chrome หรือ Edge บนคอมพิวเตอร์หรือ Android (iPhone/iPad ใช้ไม่ได้)';
+  if (!window.niimbluelib) return 'โหลดตัวเชื่อมต่อเครื่องพิมพ์ไม่สำเร็จ ลองรีเฟรชหน้า';
+  return '';
+}
+async function connect(){
+  const m = supportMsg(); if (m){ msg(m, true); return false; }
+  if (client && client.isConnected()){ try { await client.disconnect(); } catch(e){} client = null; st('off', 'ยังไม่เชื่อมต่อ'); $('#print').disabled = true; $('#connect').textContent = 'เชื่อมต่อเครื่องพิมพ์'; return false; }
+  const c = new niimbluelib.NiimbotBluetoothClient();
+  c.on('disconnect', () => { client = null; st('off', 'ตัดการเชื่อมต่อแล้ว'); $('#print').disabled = true; $('#connect').textContent = 'เชื่อมต่อเครื่องพิมพ์'; });
+  try {
+    st('busy', 'กำลังเชื่อมต่อ…');
+    const info = await c.connect();
+    client = c;
+    const meta = c.getModelMetadata();
+    st('on', 'เชื่อมต่อ ' + ((meta && meta.model) || (info && info.deviceName) || 'NIIMBOT'));
+    $('#print').disabled = !ITEMS.length; $('#connect').textContent = 'ตัดการเชื่อมต่อ';
+    msg('พร้อมพิมพ์');
+    return true;
+  } catch(e){
+    st('err', 'เชื่อมต่อไม่สำเร็จ');
+    if (!/cancel|chosen/i.test(String(e && e.message))) msg('เชื่อมต่อไม่สำเร็จ: ' + (e && e.message || e), true); else msg('ยกเลิกการเลือกเครื่อง');
+    return false;
+  }
+}
+async function printAll(){
+  if (busy || !client) return;
+  busy = true; $('#print').disabled = true;
+  const lib = niimbluelib, meta = client.getModelMetadata();
+  const taskName = CFG.task !== 'auto' ? CFG.task : (client.getPrintTaskType() || 'B1');
+  const dir = (meta && meta.printDirection) || 'top';
+  await fontsReady(ITEMS);
+  const ps = pages();
+  const task = client.protocol.newPrintTask(taskName, {totalPages: ps.length, density: CFG.density, labelType: CFG.type});
+  try {
+    await task.printInit();
+    for (let i = 0; i < ps.length; i++){
+      const enc = lib.ImageEncoder.encodeCanvas(pageCanvas(ps[i]), lib.PageColorType.SingleColor, dir);
+      await task.printPage(enc, 1);
+      await task.waitForPageFinished();
+      $('#bar').style.width = ((i + 1) / ps.length * 100) + '%';
+      msg(`กำลังพิมพ์ ${i + 1} / ${ps.length}`);
+    }
+    await task.waitForFinished();
+    msg(`พิมพ์เสร็จ ${ps.length} แผ่น`);
+  } catch(e){
+    msg('พิมพ์ไม่สำเร็จ: ' + (e && e.message || e) + ' ถ้าเครื่องไม่ตอบสนอง ลองเปลี่ยนโหมดคำสั่งพิมพ์เป็น B1 หรือ D110', true);
+  } finally {
+    try { await task.printEnd(); } catch(e){}
+    busy = false; $('#print').disabled = !client;
+  }
+}
+try {
+  const d = decode(location.hash);
+  CFG = Object.assign(CFG, d.l || {});
+  ITEMS = (d.items || []).map(x => ({code: String(x[0] || ''), name: String(x[1] || ''), branch: String(x[2] || '')}));
+} catch(e){ ITEMS = []; }
+// the data lives only in this tab: drop it from the address bar and history
+try { history.replaceState(null, '', location.pathname); } catch(e){}
+if (!ITEMS.length){
+  $('#box').innerHTML = '<p>ไม่มีรายการป้ายให้พิมพ์ เปิดหน้านี้จากปุ่ม "พิมพ์ป้าย" ในระบบทะเบียนสินทรัพย์</p>';
+} else {
+  $('#size').value = CFG.size; $('#density').value = CFG.density; $('#task').value = CFG.task;
+  $('#size').onchange = e => { CFG.size = e.target.value; preview(); };
+  $('#density').onchange = e => { CFG.density = Math.max(1, Math.min(5, parseInt(e.target.value, 10) || 3)); e.target.value = CFG.density; };
+  $('#task').onchange = e => { CFG.task = e.target.value; };
+  $('#connect').onclick = connect;
+  $('#print').onclick = printAll;
+  preview();
+  const m = supportMsg(); if (m) msg(m, true);
+}
+})();
+</script>
+</body>
+</html>

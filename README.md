@@ -13,3 +13,7 @@
 ## ไลบรารีที่ใช้
 - [niimbluelib](https://github.com/MultiMote/niimbluelib) 0.47.1 (MIT) – `vendor/niimbluelib-0.47.1.min.js`
 - [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) 1.4.4 (MIT) – `vendor/qrcode-generator-1.4.4.js`
+
+## ระบบจริง: Google Sheet + Apps Script
+โค้ดอยู่ในโฟลเดอร์ [`apps-script/`](apps-script/) ดูวิธีติดตั้งที่ [`apps-script/SETUP.md`](apps-script/SETUP.md)
+หน้า `index.html` บน GitHub Pages เป็นเดโมที่เก็บข้อมูลในเบราว์เซอร์ ส่วน `print.html` คือหน้าพิมพ์ป้ายที่ระบบจริงเปิดใช้

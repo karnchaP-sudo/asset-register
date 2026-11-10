@@ -1,0 +1,3506 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>ทะเบียนสินทรัพย์</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: sticky ledger bar with tabs, one working column, a right-side drawer for each asset */
+:root{
+  --bg:#f3f6f5; --surface:#ffffff; --sunk:#eaf0ee; --ink:#16211d; --muted:#5a6a64; --line:#dbe3e0;
+  --accent:#1c6a56; --accent-ink:#ffffff; --accent-soft:#dfeee8;
+  --good:#2b7a49; --warn:#9a5a12; --bad:#b03636; --warn-soft:#fbefdf; --bad-soft:#f9e4e4;
+  --shadow:0 12px 40px rgba(20,40,34,.18);
+  --BD-bg:#e9eaec; --BD-fg:#4a4f57; --OF-bg:#fbe3d3; --OF-fg:#a2521c; --FF-bg:#dcefd3; --FF-fg:#3d7a2a; --KT-bg:#d8e9f8; --KT-fg:#23639e; --VH-bg:#dce6ea; --VH-fg:#3f5f6b; --SW-bg:#e8def5; --SW-fg:#6a4a9a; --CP-bg:#f8dcdc; --CP-fg:#a33a3a; --CS-bg:#f4ecd0; --CS-fg:#7a6212;
+  --f-body:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1412; --surface:#151d1a; --sunk:#1b2521; --ink:#e4ebe8; --muted:#97a6a0; --line:#2a3632;
+  --accent:#62c2a2; --accent-ink:#0b1a15; --accent-soft:#1c3029;
+  --good:#7fd09c; --warn:#e3a764; --bad:#f08c8c; --warn-soft:#33281a; --bad-soft:#3a2020;
+  --shadow:0 12px 40px rgba(0,0,0,.5); --BD-bg:#262a30; --BD-fg:#c3c8d0; --OF-bg:#3a2a1f; --OF-fg:#f2b48a; --FF-bg:#22331d; --FF-fg:#a8d898; --KT-bg:#1c2b3a; --KT-fg:#9cc8f0; --VH-bg:#1f2b30; --VH-fg:#a9c5cf; --SW-bg:#2c2438; --SW-fg:#c9b2ef; --CP-bg:#3a2222; --CP-fg:#f0a3a3; --CS-bg:#33301c; --CS-fg:#e3d08a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1412; --surface:#151d1a; --sunk:#1b2521; --ink:#e4ebe8; --muted:#97a6a0; --line:#2a3632;
+  --accent:#62c2a2; --accent-ink:#0b1a15; --accent-soft:#1c3029;
+  --good:#7fd09c; --warn:#e3a764; --bad:#f08c8c; --warn-soft:#33281a; --bad-soft:#3a2020;
+  --shadow:0 12px 40px rgba(0,0,0,.5); --BD-bg:#262a30; --BD-fg:#c3c8d0; --OF-bg:#3a2a1f; --OF-fg:#f2b48a; --FF-bg:#22331d; --FF-fg:#a8d898; --KT-bg:#1c2b3a; --KT-fg:#9cc8f0; --VH-bg:#1f2b30; --VH-fg:#a9c5cf; --SW-bg:#2c2438; --SW-fg:#c9b2ef; --CP-bg:#3a2222; --CP-fg:#f0a3a3; --CS-bg:#33301c; --CS-fg:#e3d08a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding-block:12px}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand b{font-size:18px;font-weight:600}
+.brand span{font-size:12px;color:var(--muted)}
+nav{display:flex;gap:4px;overflow-x:auto;flex:1;min-width:0}
+nav button{border:0;background:none;color:var(--muted);font:inherit;font-weight:500;padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
+nav button[aria-current="true"]{background:var(--accent-soft);color:var(--accent)}
+.demo-tag{font-size:12px;color:var(--warn);background:var(--warn-soft);padding:3px 10px;border-radius:99px}
+main{padding-block:24px 64px;display:grid;gap:24px}
+h1{font-size:24px;font-weight:600;margin:0;text-wrap:balance}
+h2{font-size:17px;font-weight:600;margin:0 0 12px}
+h3{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.sub{color:var(--muted);margin:4px 0 0;font-size:14px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
+.spread{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(160px,100%),1fr));gap:12px}
+main>*{min-width:0}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.kpi small{display:block;color:var(--muted);font-size:13px}
+.kpi strong{display:block;font-size:clamp(17px,4.6vw,22px);overflow-wrap:anywhere;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
+.kpi em{font-style:normal;font-size:12px;color:var(--muted)}
+.scroll{overflow-x:auto;min-width:0}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{font-size:12px;font-weight:600;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:right;white-space:nowrap}
+tfoot td{font-weight:600;border-top:1px solid var(--line);border-bottom:0}
+tbody tr.click{cursor:pointer}
+tbody tr.click:hover td{background:var(--sunk)}
+.code{font-family:var(--f-mono);font-weight:600;font-size:13.5px;letter-spacing:.01em;white-space:nowrap}
+.thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;display:block;background:var(--sunk)}
+.ph{width:44px;height:44px;border-radius:8px;display:grid;place-items:center;font-family:var(--f-mono);font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-soft)}
+.pill{display:inline-block;font-size:12px;font-weight:500;padding:2px 10px;border-radius:99px;white-space:nowrap}
+.p-active{background:var(--accent-soft);color:var(--accent)}
+.p-cip{background:var(--warn-soft);color:var(--warn)}
+.p-off{background:var(--sunk);color:var(--muted)}
+.p-full{background:var(--bad-soft);color:var(--bad)}
+.ex{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 5px;margin-left:6px}
+label.f{display:grid;gap:4px;font-size:13px;color:var(--muted);min-width:0}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0;width:100%}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn{font:inherit;font-weight:500;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink);white-space:nowrap}
+.btn:hover{background:var(--sunk)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:4px 10px;font-size:13px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 16px}
+.split{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:24px}
+@media (max-width:860px){.split{grid-template-columns:1fr}}
+.alert{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.alert:last-child{border-bottom:0}
+.alert b{font-variant-numeric:tabular-nums}
+.note{font-size:13px;color:var(--muted)}
+.warnbox{font-size:13px;color:var(--warn);background:var(--warn-soft);border-radius:8px;padding:8px 12px}
+
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:5px 14px 5px 5px;cursor:pointer;font:inherit;font-size:14px;color:var(--ink)}
+.chip .ic{width:30px;height:30px;border-radius:50%;display:grid;place-items:center}
+.chip .ic svg{width:18px;height:18px}
+.chip b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px}
+@media (max-width:560px){.cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.acard .meta{padding:10px}.acard .mrow b{font-size:13px}nav{flex-basis:100%;order:3}.brand span{display:none}}
+.acard{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;text-align:left;font:inherit;color:inherit;padding:0;transition:border-color .15s, transform .15s}
+.acard:hover{border-color:var(--accent);transform:translateY(-2px)}
+.art{aspect-ratio:4/3;width:100%;max-width:100%;display:grid;place-items:center;position:relative;overflow:hidden}
+.art svg{width:40%;height:auto}
+.art img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.art .tag{position:absolute;top:10px;left:10px;font-family:var(--f-mono);font-weight:600;font-size:12.5px;background:var(--surface);color:var(--ink);padding:3px 8px;border-radius:6px;z-index:1}
+.art .st{position:absolute;top:10px;right:10px;z-index:1}
+.acard .meta{padding:12px 14px 14px;display:grid;gap:6px}
+.acard .nm{font-weight:500;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.8em}
+.acard .br{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acard .mrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-top:1px solid var(--line);padding-top:8px;margin-top:2px}
+.acard .mrow small{font-size:12px;color:var(--muted)}
+.acard .mrow b{font-weight:600;font-variant-numeric:tabular-nums}
+.cattiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(230px,100%),1fr));gap:12px}
+.ctile{display:grid;grid-template-columns:56px 1fr;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;text-align:left;font:inherit;color:inherit}
+.ctile:hover{border-color:var(--accent)}
+.ctile .ic{width:56px;height:56px;border-radius:14px;display:grid;place-items:center}
+.ctile .ic svg{width:32px;height:32px}
+.ctile .t{min-width:0;display:grid;gap:2px}
+.ctile .t span{font-size:13px;color:var(--muted)}
+.ctile .t strong{font-size:18px;font-variant-numeric:tabular-nums}
+.meter{height:6px;border-radius:3px;background:var(--sunk);overflow:hidden;margin-top:6px}
+.meter i{display:block;height:100%;border-radius:3px}
+.blist{display:grid;gap:12px}
+.bitem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;font-size:14px;cursor:pointer}
+.bitem .meter{grid-column:1/-1;margin-top:0}
+.bitem b{font-variant-numeric:tabular-nums;font-weight:600}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--surface);color:var(--muted);font:inherit;font-size:14px;padding:7px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:500}
+.more{display:flex;justify-content:center}
+.heroart{border-radius:12px;aspect-ratio:auto;height:200px}
+.heroart svg{width:26%}
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(10,20,16,.42);z-index:40}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(760px,100%);background:var(--bg);z-index:41;box-shadow:var(--shadow);display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-right:env(safe-area-inset-right,0px)}
+.dhead{display:flex;justify-content:space-between;align-items:start;gap:12px;padding:18px 20px;border-bottom:1px solid var(--line);background:var(--surface)}
+.dbody{overflow-y:auto;padding:20px;display:grid;gap:20px;align-content:start}
+.dfoot{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--line);background:var(--surface)}
+.bigcode{font-family:var(--f-mono);font-size:22px;font-weight:600}
+.gallery{display:grid;gap:10px}
+.mainimg{width:100%;aspect-ratio:4/3;max-width:100%;object-fit:cover;border-radius:12px;background:var(--sunk);display:block}
+.noimg{min-height:120px;border-radius:12px;border:1px dashed var(--line);display:grid;place-items:center;color:var(--muted);text-align:center;padding:16px;background:var(--surface)}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap}
+.tw{position:relative}
+.tw img{width:72px;height:72px;object-fit:cover;border-radius:8px;display:block;border:2px solid transparent;cursor:pointer}
+.tw.primary img{border-color:var(--accent)}
+.tw .x{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--bad);font-size:13px;line-height:1;cursor:pointer;padding:0}
+.upl{display:inline-flex;align-items:center;gap:6px}
+.upl input{position:absolute;width:1px;height:1px;opacity:0}
+dl.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px 20px;margin:0}
+dl.facts div{min-width:0}
+dl.facts dt{font-size:12px;color:var(--muted)}
+dl.facts dd{margin:0;font-weight:500;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.label{display:flex;gap:12px;align-items:center;border:1px solid var(--ink);border-radius:6px;padding:10px 12px;width:min(340px,100%);background:#fff;color:#111}
+.label .qr svg{width:84px;height:84px;display:block}
+.label .t{display:grid;gap:2px;min-width:0}
+.label .t small{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#555}
+.label .t b{font-family:var(--f-mono);font-size:17px}
+.label .t span{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hist{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.hist li{display:grid;grid-template-columns:110px 1fr;gap:10px;font-size:14px}
+.hist li span:first-child{color:var(--muted);font-variant-numeric:tabular-nums}
+.jv td:first-child{width:56px;color:var(--muted)}
+.jv .cr td:nth-child(2){padding-left:32px}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:60;max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.6}}}
+
+.cnt{display:inline-block;min-width:20px;padding:0 6px;margin-left:2px;border-radius:99px;background:var(--warn-soft);color:var(--warn);font-size:12px;font-weight:600;text-align:center}.cnt:empty{display:none}
+.pqhead{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+.pq td .note{font-size:12.5px}
+.pq .acts{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.prbtn{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:5px 12px;border-radius:99px;cursor:pointer;white-space:nowrap}
+.prbtn i{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.prbtn[data-state="on"] i{background:var(--good)}
+.prbtn[data-state="busy"] i{background:var(--warn)}
+.lblprev{display:block;width:min(340px,100%);height:auto;border:1px solid var(--line);border-radius:8px;background:#fff;image-rendering:pixelated}
+.prrow{display:flex;flex-wrap:wrap;gap:8px;align-items:end;margin-top:10px}
+.prrow .f{width:110px}
+.empty{text-align:center;padding:40px 20px;display:grid;gap:12px;justify-items:center}
+.empty h2{margin:0}
+.filebtn{position:relative;overflow:hidden}
+.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.prog{height:6px;border-radius:99px;background:var(--sunk);overflow:hidden;margin-top:8px}
+.prog i{display:block;height:100%;background:var(--accent);width:0;transition:width .2s}
+</style>
+
+</head>
+<body>
+<header>
+  <div class="wrap bar">
+    <div class="brand"><b>ทะเบียนสินทรัพย์</b><span>Fixed Asset Register</span></div>
+    <nav id="nav">
+      <button data-view="overview">ภาพรวม</button>
+      <button data-view="register">ทะเบียน</button>
+      <button data-view="pending">รอขึ้นทะเบียน <b class="cnt" id="pcnt"></b></button>
+      <button data-view="dep">ค่าเสื่อมราคา</button>
+      <button data-view="settings">ตั้งค่า</button>
+    </nav>
+    <span class="prbtn" id="sync" data-state="busy" title="สถานะการบันทึกลง Google Sheet"><i></i><span>กำลังโหลด…</span></span>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+<div id="layer"></div>
+<div id="toast" hidden></div>
+
+<script>
+//---------------------------------------------------------------------
+//
+// QR Code Generator for JavaScript
+//
+// Copyright (c) 2009 Kazuhiko Arase
+//
+// URL: http://www.d-project.com/
+//
+// Licensed under the MIT license:
+//  http://www.opensource.org/licenses/mit-license.php
+//
+// The word 'QR Code' is registered trademark of
+// DENSO WAVE INCORPORATED
+//  http://www.denso-wave.com/qrcode/faqpatent-e.html
+//
+//---------------------------------------------------------------------
+
+var qrcode = function() {
+
+  //---------------------------------------------------------------------
+  // qrcode
+  //---------------------------------------------------------------------
+
+  /**
+   * qrcode
+   * @param typeNumber 1 to 40
+   * @param errorCorrectionLevel 'L','M','Q','H'
+   */
+  var qrcode = function(typeNumber, errorCorrectionLevel) {
+
+    var PAD0 = 0xEC;
+    var PAD1 = 0x11;
+
+    var _typeNumber = typeNumber;
+    var _errorCorrectionLevel = QRErrorCorrectionLevel[errorCorrectionLevel];
+    var _modules = null;
+    var _moduleCount = 0;
+    var _dataCache = null;
+    var _dataList = [];
+
+    var _this = {};
+
+    var makeImpl = function(test, maskPattern) {
+
+      _moduleCount = _typeNumber * 4 + 17;
+      _modules = function(moduleCount) {
+        var modules = new Array(moduleCount);
+        for (var row = 0; row < moduleCount; row += 1) {
+          modules[row] = new Array(moduleCount);
+          for (var col = 0; col < moduleCount; col += 1) {
+            modules[row][col] = null;
+          }
+        }
+        return modules;
+      }(_moduleCount);
+
+      setupPositionProbePattern(0, 0);
+      setupPositionProbePattern(_moduleCount - 7, 0);
+      setupPositionProbePattern(0, _moduleCount - 7);
+      setupPositionAdjustPattern();
+      setupTimingPattern();
+      setupTypeInfo(test, maskPattern);
+
+      if (_typeNumber >= 7) {
+        setupTypeNumber(test);
+      }
+
+      if (_dataCache == null) {
+        _dataCache = createData(_typeNumber, _errorCorrectionLevel, _dataList);
+      }
+
+      mapData(_dataCache, maskPattern);
+    };
+
+    var setupPositionProbePattern = function(row, col) {
+
+      for (var r = -1; r <= 7; r += 1) {
+
+        if (row + r <= -1 || _moduleCount <= row + r) continue;
+
+        for (var c = -1; c <= 7; c += 1) {
+
+          if (col + c <= -1 || _moduleCount <= col + c) continue;
+
+          if ( (0 <= r && r <= 6 && (c == 0 || c == 6) )
+              || (0 <= c && c <= 6 && (r == 0 || r == 6) )
+              || (2 <= r && r <= 4 && 2 <= c && c <= 4) ) {
+            _modules[row + r][col + c] = true;
+          } else {
+            _modules[row + r][col + c] = false;
+          }
+        }
+      }
+    };
+
+    var getBestMaskPattern = function() {
+
+      var minLostPoint = 0;
+      var pattern = 0;
+
+      for (var i = 0; i < 8; i += 1) {
+
+        makeImpl(true, i);
+
+        var lostPoint = QRUtil.getLostPoint(_this);
+
+        if (i == 0 || minLostPoint > lostPoint) {
+          minLostPoint = lostPoint;
+          pattern = i;
+        }
+      }
+
+      return pattern;
+    };
+
+    var setupTimingPattern = function() {
+
+      for (var r = 8; r < _moduleCount - 8; r += 1) {
+        if (_modules[r][6] != null) {
+          continue;
+        }
+        _modules[r][6] = (r % 2 == 0);
+      }
+
+      for (var c = 8; c < _moduleCount - 8; c += 1) {
+        if (_modules[6][c] != null) {
+          continue;
+        }
+        _modules[6][c] = (c % 2 == 0);
+      }
+    };
+
+    var setupPositionAdjustPattern = function() {
+
+      var pos = QRUtil.getPatternPosition(_typeNumber);
+
+      for (var i = 0; i < pos.length; i += 1) {
+
+        for (var j = 0; j < pos.length; j += 1) {
+
+          var row = pos[i];
+          var col = pos[j];
+
+          if (_modules[row][col] != null) {
+            continue;
+          }
+
+          for (var r = -2; r <= 2; r += 1) {
+
+            for (var c = -2; c <= 2; c += 1) {
+
+              if (r == -2 || r == 2 || c == -2 || c == 2
+                  || (r == 0 && c == 0) ) {
+                _modules[row + r][col + c] = true;
+              } else {
+                _modules[row + r][col + c] = false;
+              }
+            }
+          }
+        }
+      }
+    };
+
+    var setupTypeNumber = function(test) {
+
+      var bits = QRUtil.getBCHTypeNumber(_typeNumber);
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[Math.floor(i / 3)][i % 3 + _moduleCount - 8 - 3] = mod;
+      }
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[i % 3 + _moduleCount - 8 - 3][Math.floor(i / 3)] = mod;
+      }
+    };
+
+    var setupTypeInfo = function(test, maskPattern) {
+
+      var data = (_errorCorrectionLevel << 3) | maskPattern;
+      var bits = QRUtil.getBCHTypeInfo(data);
+
+      // vertical
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 6) {
+          _modules[i][8] = mod;
+        } else if (i < 8) {
+          _modules[i + 1][8] = mod;
+        } else {
+          _modules[_moduleCount - 15 + i][8] = mod;
+        }
+      }
+
+      // horizontal
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 8) {
+          _modules[8][_moduleCount - i - 1] = mod;
+        } else if (i < 9) {
+          _modules[8][15 - i - 1 + 1] = mod;
+        } else {
+          _modules[8][15 - i - 1] = mod;
+        }
+      }
+
+      // fixed module
+      _modules[_moduleCount - 8][8] = (!test);
+    };
+
+    var mapData = function(data, maskPattern) {
+
+      var inc = -1;
+      var row = _moduleCount - 1;
+      var bitIndex = 7;
+      var byteIndex = 0;
+      var maskFunc = QRUtil.getMaskFunction(maskPattern);
+
+      for (var col = _moduleCount - 1; col > 0; col -= 2) {
+
+        if (col == 6) col -= 1;
+
+        while (true) {
+
+          for (var c = 0; c < 2; c += 1) {
+
+            if (_modules[row][col - c] == null) {
+
+              var dark = false;
+
+              if (byteIndex < data.length) {
+                dark = ( ( (data[byteIndex] >>> bitIndex) & 1) == 1);
+              }
+
+              var mask = maskFunc(row, col - c);
+
+              if (mask) {
+                dark = !dark;
+              }
+
+              _modules[row][col - c] = dark;
+              bitIndex -= 1;
+
+              if (bitIndex == -1) {
+                byteIndex += 1;
+                bitIndex = 7;
+              }
+            }
+          }
+
+          row += inc;
+
+          if (row < 0 || _moduleCount <= row) {
+            row -= inc;
+            inc = -inc;
+            break;
+          }
+        }
+      }
+    };
+
+    var createBytes = function(buffer, rsBlocks) {
+
+      var offset = 0;
+
+      var maxDcCount = 0;
+      var maxEcCount = 0;
+
+      var dcdata = new Array(rsBlocks.length);
+      var ecdata = new Array(rsBlocks.length);
+
+      for (var r = 0; r < rsBlocks.length; r += 1) {
+
+        var dcCount = rsBlocks[r].dataCount;
+        var ecCount = rsBlocks[r].totalCount - dcCount;
+
+        maxDcCount = Math.max(maxDcCount, dcCount);
+        maxEcCount = Math.max(maxEcCount, ecCount);
+
+        dcdata[r] = new Array(dcCount);
+
+        for (var i = 0; i < dcdata[r].length; i += 1) {
+          dcdata[r][i] = 0xff & buffer.getBuffer()[i + offset];
+        }
+        offset += dcCount;
+
+        var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+        var rawPoly = qrPolynomial(dcdata[r], rsPoly.getLength() - 1);
+
+        var modPoly = rawPoly.mod(rsPoly);
+        ecdata[r] = new Array(rsPoly.getLength() - 1);
+        for (var i = 0; i < ecdata[r].length; i += 1) {
+          var modIndex = i + modPoly.getLength() - ecdata[r].length;
+          ecdata[r][i] = (modIndex >= 0)? modPoly.getAt(modIndex) : 0;
+        }
+      }
+
+      var totalCodeCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalCodeCount += rsBlocks[i].totalCount;
+      }
+
+      var data = new Array(totalCodeCount);
+      var index = 0;
+
+      for (var i = 0; i < maxDcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < dcdata[r].length) {
+            data[index] = dcdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      for (var i = 0; i < maxEcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < ecdata[r].length) {
+            data[index] = ecdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      return data;
+    };
+
+    var createData = function(typeNumber, errorCorrectionLevel, dataList) {
+
+      var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectionLevel);
+
+      var buffer = qrBitBuffer();
+
+      for (var i = 0; i < dataList.length; i += 1) {
+        var data = dataList[i];
+        buffer.put(data.getMode(), 4);
+        buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+        data.write(buffer);
+      }
+
+      // calc num max data.
+      var totalDataCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalDataCount += rsBlocks[i].dataCount;
+      }
+
+      if (buffer.getLengthInBits() > totalDataCount * 8) {
+        throw 'code length overflow. ('
+          + buffer.getLengthInBits()
+          + '>'
+          + totalDataCount * 8
+          + ')';
+      }
+
+      // end code
+      if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+        buffer.put(0, 4);
+      }
+
+      // padding
+      while (buffer.getLengthInBits() % 8 != 0) {
+        buffer.putBit(false);
+      }
+
+      // padding
+      while (true) {
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD0, 8);
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD1, 8);
+      }
+
+      return createBytes(buffer, rsBlocks);
+    };
+
+    _this.addData = function(data, mode) {
+
+      mode = mode || 'Byte';
+
+      var newData = null;
+
+      switch(mode) {
+      case 'Numeric' :
+        newData = qrNumber(data);
+        break;
+      case 'Alphanumeric' :
+        newData = qrAlphaNum(data);
+        break;
+      case 'Byte' :
+        newData = qr8BitByte(data);
+        break;
+      case 'Kanji' :
+        newData = qrKanji(data);
+        break;
+      default :
+        throw 'mode:' + mode;
+      }
+
+      _dataList.push(newData);
+      _dataCache = null;
+    };
+
+    _this.isDark = function(row, col) {
+      if (row < 0 || _moduleCount <= row || col < 0 || _moduleCount <= col) {
+        throw row + ',' + col;
+      }
+      return _modules[row][col];
+    };
+
+    _this.getModuleCount = function() {
+      return _moduleCount;
+    };
+
+    _this.make = function() {
+      if (_typeNumber < 1) {
+        var typeNumber = 1;
+
+        for (; typeNumber < 40; typeNumber++) {
+          var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, _errorCorrectionLevel);
+          var buffer = qrBitBuffer();
+
+          for (var i = 0; i < _dataList.length; i++) {
+            var data = _dataList[i];
+            buffer.put(data.getMode(), 4);
+            buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+            data.write(buffer);
+          }
+
+          var totalDataCount = 0;
+          for (var i = 0; i < rsBlocks.length; i++) {
+            totalDataCount += rsBlocks[i].dataCount;
+          }
+
+          if (buffer.getLengthInBits() <= totalDataCount * 8) {
+            break;
+          }
+        }
+
+        _typeNumber = typeNumber;
+      }
+
+      makeImpl(false, getBestMaskPattern() );
+    };
+
+    _this.createTableTag = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var qrHtml = '';
+
+      qrHtml += '<table style="';
+      qrHtml += ' border-width: 0px; border-style: none;';
+      qrHtml += ' border-collapse: collapse;';
+      qrHtml += ' padding: 0px; margin: ' + margin + 'px;';
+      qrHtml += '">';
+      qrHtml += '<tbody>';
+
+      for (var r = 0; r < _this.getModuleCount(); r += 1) {
+
+        qrHtml += '<tr>';
+
+        for (var c = 0; c < _this.getModuleCount(); c += 1) {
+          qrHtml += '<td style="';
+          qrHtml += ' border-width: 0px; border-style: none;';
+          qrHtml += ' border-collapse: collapse;';
+          qrHtml += ' padding: 0px; margin: 0px;';
+          qrHtml += ' width: ' + cellSize + 'px;';
+          qrHtml += ' height: ' + cellSize + 'px;';
+          qrHtml += ' background-color: ';
+          qrHtml += _this.isDark(r, c)? '#000000' : '#ffffff';
+          qrHtml += ';';
+          qrHtml += '"/>';
+        }
+
+        qrHtml += '</tr>';
+      }
+
+      qrHtml += '</tbody>';
+      qrHtml += '</table>';
+
+      return qrHtml;
+    };
+
+    _this.createSvgTag = function(cellSize, margin, alt, title) {
+
+      var opts = {};
+      if (typeof arguments[0] == 'object') {
+        // Called by options.
+        opts = arguments[0];
+        // overwrite cellSize and margin.
+        cellSize = opts.cellSize;
+        margin = opts.margin;
+        alt = opts.alt;
+        title = opts.title;
+      }
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      // Compose alt property surrogate
+      alt = (typeof alt === 'string') ? {text: alt} : alt || {};
+      alt.text = alt.text || null;
+      alt.id = (alt.text) ? alt.id || 'qrcode-description' : null;
+
+      // Compose title property surrogate
+      title = (typeof title === 'string') ? {text: title} : title || {};
+      title.text = title.text || null;
+      title.id = (title.text) ? title.id || 'qrcode-title' : null;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var c, mc, r, mr, qrSvg='', rect;
+
+      rect = 'l' + cellSize + ',0 0,' + cellSize +
+        ' -' + cellSize + ',0 0,-' + cellSize + 'z ';
+
+      qrSvg += '<svg version="1.1" xmlns="http://www.w3.org/2000/svg"';
+      qrSvg += !opts.scalable ? ' width="' + size + 'px" height="' + size + 'px"' : '';
+      qrSvg += ' viewBox="0 0 ' + size + ' ' + size + '" ';
+      qrSvg += ' preserveAspectRatio="xMinYMin meet"';
+      qrSvg += (title.text || alt.text) ? ' role="img" aria-labelledby="' +
+          escapeXml([title.id, alt.id].join(' ').trim() ) + '"' : '';
+      qrSvg += '>';
+      qrSvg += (title.text) ? '<title id="' + escapeXml(title.id) + '">' +
+          escapeXml(title.text) + '</title>' : '';
+      qrSvg += (alt.text) ? '<description id="' + escapeXml(alt.id) + '">' +
+          escapeXml(alt.text) + '</description>' : '';
+      qrSvg += '<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>';
+      qrSvg += '<path d="';
+
+      for (r = 0; r < _this.getModuleCount(); r += 1) {
+        mr = r * cellSize + margin;
+        for (c = 0; c < _this.getModuleCount(); c += 1) {
+          if (_this.isDark(r, c) ) {
+            mc = c*cellSize+margin;
+            qrSvg += 'M' + mc + ',' + mr + rect;
+          }
+        }
+      }
+
+      qrSvg += '" stroke="transparent" fill="black"/>';
+      qrSvg += '</svg>';
+
+      return qrSvg;
+    };
+
+    _this.createDataURL = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      return createDataURL(size, size, function(x, y) {
+        if (min <= x && x < max && min <= y && y < max) {
+          var c = Math.floor( (x - min) / cellSize);
+          var r = Math.floor( (y - min) / cellSize);
+          return _this.isDark(r, c)? 0 : 1;
+        } else {
+          return 1;
+        }
+      } );
+    };
+
+    _this.createImgTag = function(cellSize, margin, alt) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+
+      var img = '';
+      img += '<img';
+      img += '\u0020src="';
+      img += _this.createDataURL(cellSize, margin);
+      img += '"';
+      img += '\u0020width="';
+      img += size;
+      img += '"';
+      img += '\u0020height="';
+      img += size;
+      img += '"';
+      if (alt) {
+        img += '\u0020alt="';
+        img += escapeXml(alt);
+        img += '"';
+      }
+      img += '/>';
+
+      return img;
+    };
+
+    var escapeXml = function(s) {
+      var escaped = '';
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charAt(i);
+        switch(c) {
+        case '<': escaped += '&lt;'; break;
+        case '>': escaped += '&gt;'; break;
+        case '&': escaped += '&amp;'; break;
+        case '"': escaped += '&quot;'; break;
+        default : escaped += c; break;
+        }
+      }
+      return escaped;
+    };
+
+    var _createHalfASCII = function(margin) {
+      var cellSize = 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r1, r2, p;
+
+      var blocks = {
+        '██': '█',
+        '█ ': '▀',
+        ' █': '▄',
+        '  ': ' '
+      };
+
+      var blocksLastLineNoMargin = {
+        '██': '▀',
+        '█ ': '▀',
+        ' █': ' ',
+        '  ': ' '
+      };
+
+      var ascii = '';
+      for (y = 0; y < size; y += 2) {
+        r1 = Math.floor((y - min) / cellSize);
+        r2 = Math.floor((y + 1 - min) / cellSize);
+        for (x = 0; x < size; x += 1) {
+          p = '█';
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r1, Math.floor((x - min) / cellSize))) {
+            p = ' ';
+          }
+
+          if (min <= x && x < max && min <= y+1 && y+1 < max && _this.isDark(r2, Math.floor((x - min) / cellSize))) {
+            p += ' ';
+          }
+          else {
+            p += '█';
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          ascii += (margin < 1 && y+1 >= max) ? blocksLastLineNoMargin[p] : blocks[p];
+        }
+
+        ascii += '\n';
+      }
+
+      if (size % 2 && margin > 0) {
+        return ascii.substring(0, ascii.length - size - 1) + Array(size+1).join('▀');
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.createASCII = function(cellSize, margin) {
+      cellSize = cellSize || 1;
+
+      if (cellSize < 2) {
+        return _createHalfASCII(margin);
+      }
+
+      cellSize -= 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r, p;
+
+      var white = Array(cellSize+1).join('██');
+      var black = Array(cellSize+1).join('  ');
+
+      var ascii = '';
+      var line = '';
+      for (y = 0; y < size; y += 1) {
+        r = Math.floor( (y - min) / cellSize);
+        line = '';
+        for (x = 0; x < size; x += 1) {
+          p = 1;
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r, Math.floor((x - min) / cellSize))) {
+            p = 0;
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          line += p ? white : black;
+        }
+
+        for (r = 0; r < cellSize; r += 1) {
+          ascii += line + '\n';
+        }
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.renderTo2dContext = function(context, cellSize) {
+      cellSize = cellSize || 2;
+      var length = _this.getModuleCount();
+      for (var row = 0; row < length; row++) {
+        for (var col = 0; col < length; col++) {
+          context.fillStyle = _this.isDark(row, col) ? 'black' : 'white';
+          context.fillRect(row * cellSize, col * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrcode.stringToBytes
+  //---------------------------------------------------------------------
+
+  qrcode.stringToBytesFuncs = {
+    'default' : function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        bytes.push(c & 0xff);
+      }
+      return bytes;
+    }
+  };
+
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs['default'];
+
+  //---------------------------------------------------------------------
+  // qrcode.createStringToBytes
+  //---------------------------------------------------------------------
+
+  /**
+   * @param unicodeData base64 string of byte array.
+   * [16bit Unicode],[16bit Bytes], ...
+   * @param numChars
+   */
+  qrcode.createStringToBytes = function(unicodeData, numChars) {
+
+    // create conversion map.
+
+    var unicodeMap = function() {
+
+      var bin = base64DecodeInputStream(unicodeData);
+      var read = function() {
+        var b = bin.read();
+        if (b == -1) throw 'eof';
+        return b;
+      };
+
+      var count = 0;
+      var unicodeMap = {};
+      while (true) {
+        var b0 = bin.read();
+        if (b0 == -1) break;
+        var b1 = read();
+        var b2 = read();
+        var b3 = read();
+        var k = String.fromCharCode( (b0 << 8) | b1);
+        var v = (b2 << 8) | b3;
+        unicodeMap[k] = v;
+        count += 1;
+      }
+      if (count != numChars) {
+        throw count + ' != ' + numChars;
+      }
+
+      return unicodeMap;
+    }();
+
+    var unknownChar = '?'.charCodeAt(0);
+
+    return function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        if (c < 128) {
+          bytes.push(c);
+        } else {
+          var b = unicodeMap[s.charAt(i)];
+          if (typeof b == 'number') {
+            if ( (b & 0xff) == b) {
+              // 1byte
+              bytes.push(b);
+            } else {
+              // 2bytes
+              bytes.push(b >>> 8);
+              bytes.push(b & 0xff);
+            }
+          } else {
+            bytes.push(unknownChar);
+          }
+        }
+      }
+      return bytes;
+    };
+  };
+
+  //---------------------------------------------------------------------
+  // QRMode
+  //---------------------------------------------------------------------
+
+  var QRMode = {
+    MODE_NUMBER :    1 << 0,
+    MODE_ALPHA_NUM : 1 << 1,
+    MODE_8BIT_BYTE : 1 << 2,
+    MODE_KANJI :     1 << 3
+  };
+
+  //---------------------------------------------------------------------
+  // QRErrorCorrectionLevel
+  //---------------------------------------------------------------------
+
+  var QRErrorCorrectionLevel = {
+    L : 1,
+    M : 0,
+    Q : 3,
+    H : 2
+  };
+
+  //---------------------------------------------------------------------
+  // QRMaskPattern
+  //---------------------------------------------------------------------
+
+  var QRMaskPattern = {
+    PATTERN000 : 0,
+    PATTERN001 : 1,
+    PATTERN010 : 2,
+    PATTERN011 : 3,
+    PATTERN100 : 4,
+    PATTERN101 : 5,
+    PATTERN110 : 6,
+    PATTERN111 : 7
+  };
+
+  //---------------------------------------------------------------------
+  // QRUtil
+  //---------------------------------------------------------------------
+
+  var QRUtil = function() {
+
+    var PATTERN_POSITION_TABLE = [
+      [],
+      [6, 18],
+      [6, 22],
+      [6, 26],
+      [6, 30],
+      [6, 34],
+      [6, 22, 38],
+      [6, 24, 42],
+      [6, 26, 46],
+      [6, 28, 50],
+      [6, 30, 54],
+      [6, 32, 58],
+      [6, 34, 62],
+      [6, 26, 46, 66],
+      [6, 26, 48, 70],
+      [6, 26, 50, 74],
+      [6, 30, 54, 78],
+      [6, 30, 56, 82],
+      [6, 30, 58, 86],
+      [6, 34, 62, 90],
+      [6, 28, 50, 72, 94],
+      [6, 26, 50, 74, 98],
+      [6, 30, 54, 78, 102],
+      [6, 28, 54, 80, 106],
+      [6, 32, 58, 84, 110],
+      [6, 30, 58, 86, 114],
+      [6, 34, 62, 90, 118],
+      [6, 26, 50, 74, 98, 122],
+      [6, 30, 54, 78, 102, 126],
+      [6, 26, 52, 78, 104, 130],
+      [6, 30, 56, 82, 108, 134],
+      [6, 34, 60, 86, 112, 138],
+      [6, 30, 58, 86, 114, 142],
+      [6, 34, 62, 90, 118, 146],
+      [6, 30, 54, 78, 102, 126, 150],
+      [6, 24, 50, 76, 102, 128, 154],
+      [6, 28, 54, 80, 106, 132, 158],
+      [6, 32, 58, 84, 110, 136, 162],
+      [6, 26, 54, 82, 110, 138, 166],
+      [6, 30, 58, 86, 114, 142, 170]
+    ];
+    var G15 = (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0);
+    var G18 = (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0);
+    var G15_MASK = (1 << 14) | (1 << 12) | (1 << 10) | (1 << 4) | (1 << 1);
+
+    var _this = {};
+
+    var getBCHDigit = function(data) {
+      var digit = 0;
+      while (data != 0) {
+        digit += 1;
+        data >>>= 1;
+      }
+      return digit;
+    };
+
+    _this.getBCHTypeInfo = function(data) {
+      var d = data << 10;
+      while (getBCHDigit(d) - getBCHDigit(G15) >= 0) {
+        d ^= (G15 << (getBCHDigit(d) - getBCHDigit(G15) ) );
+      }
+      return ( (data << 10) | d) ^ G15_MASK;
+    };
+
+    _this.getBCHTypeNumber = function(data) {
+      var d = data << 12;
+      while (getBCHDigit(d) - getBCHDigit(G18) >= 0) {
+        d ^= (G18 << (getBCHDigit(d) - getBCHDigit(G18) ) );
+      }
+      return (data << 12) | d;
+    };
+
+    _this.getPatternPosition = function(typeNumber) {
+      return PATTERN_POSITION_TABLE[typeNumber - 1];
+    };
+
+    _this.getMaskFunction = function(maskPattern) {
+
+      switch (maskPattern) {
+
+      case QRMaskPattern.PATTERN000 :
+        return function(i, j) { return (i + j) % 2 == 0; };
+      case QRMaskPattern.PATTERN001 :
+        return function(i, j) { return i % 2 == 0; };
+      case QRMaskPattern.PATTERN010 :
+        return function(i, j) { return j % 3 == 0; };
+      case QRMaskPattern.PATTERN011 :
+        return function(i, j) { return (i + j) % 3 == 0; };
+      case QRMaskPattern.PATTERN100 :
+        return function(i, j) { return (Math.floor(i / 2) + Math.floor(j / 3) ) % 2 == 0; };
+      case QRMaskPattern.PATTERN101 :
+        return function(i, j) { return (i * j) % 2 + (i * j) % 3 == 0; };
+      case QRMaskPattern.PATTERN110 :
+        return function(i, j) { return ( (i * j) % 2 + (i * j) % 3) % 2 == 0; };
+      case QRMaskPattern.PATTERN111 :
+        return function(i, j) { return ( (i * j) % 3 + (i + j) % 2) % 2 == 0; };
+
+      default :
+        throw 'bad maskPattern:' + maskPattern;
+      }
+    };
+
+    _this.getErrorCorrectPolynomial = function(errorCorrectLength) {
+      var a = qrPolynomial([1], 0);
+      for (var i = 0; i < errorCorrectLength; i += 1) {
+        a = a.multiply(qrPolynomial([1, QRMath.gexp(i)], 0) );
+      }
+      return a;
+    };
+
+    _this.getLengthInBits = function(mode, type) {
+
+      if (1 <= type && type < 10) {
+
+        // 1 - 9
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 10;
+        case QRMode.MODE_ALPHA_NUM : return 9;
+        case QRMode.MODE_8BIT_BYTE : return 8;
+        case QRMode.MODE_KANJI     : return 8;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 27) {
+
+        // 10 - 26
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 12;
+        case QRMode.MODE_ALPHA_NUM : return 11;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 10;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 41) {
+
+        // 27 - 40
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 14;
+        case QRMode.MODE_ALPHA_NUM : return 13;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 12;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else {
+        throw 'type:' + type;
+      }
+    };
+
+    _this.getLostPoint = function(qrcode) {
+
+      var moduleCount = qrcode.getModuleCount();
+
+      var lostPoint = 0;
+
+      // LEVEL1
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount; col += 1) {
+
+          var sameCount = 0;
+          var dark = qrcode.isDark(row, col);
+
+          for (var r = -1; r <= 1; r += 1) {
+
+            if (row + r < 0 || moduleCount <= row + r) {
+              continue;
+            }
+
+            for (var c = -1; c <= 1; c += 1) {
+
+              if (col + c < 0 || moduleCount <= col + c) {
+                continue;
+              }
+
+              if (r == 0 && c == 0) {
+                continue;
+              }
+
+              if (dark == qrcode.isDark(row + r, col + c) ) {
+                sameCount += 1;
+              }
+            }
+          }
+
+          if (sameCount > 5) {
+            lostPoint += (3 + sameCount - 5);
+          }
+        }
+      };
+
+      // LEVEL2
+
+      for (var row = 0; row < moduleCount - 1; row += 1) {
+        for (var col = 0; col < moduleCount - 1; col += 1) {
+          var count = 0;
+          if (qrcode.isDark(row, col) ) count += 1;
+          if (qrcode.isDark(row + 1, col) ) count += 1;
+          if (qrcode.isDark(row, col + 1) ) count += 1;
+          if (qrcode.isDark(row + 1, col + 1) ) count += 1;
+          if (count == 0 || count == 4) {
+            lostPoint += 3;
+          }
+        }
+      }
+
+      // LEVEL3
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount - 6; col += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row, col + 1)
+              &&  qrcode.isDark(row, col + 2)
+              &&  qrcode.isDark(row, col + 3)
+              &&  qrcode.isDark(row, col + 4)
+              && !qrcode.isDark(row, col + 5)
+              &&  qrcode.isDark(row, col + 6) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount - 6; row += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row + 1, col)
+              &&  qrcode.isDark(row + 2, col)
+              &&  qrcode.isDark(row + 3, col)
+              &&  qrcode.isDark(row + 4, col)
+              && !qrcode.isDark(row + 5, col)
+              &&  qrcode.isDark(row + 6, col) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      // LEVEL4
+
+      var darkCount = 0;
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount; row += 1) {
+          if (qrcode.isDark(row, col) ) {
+            darkCount += 1;
+          }
+        }
+      }
+
+      var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+      lostPoint += ratio * 10;
+
+      return lostPoint;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // QRMath
+  //---------------------------------------------------------------------
+
+  var QRMath = function() {
+
+    var EXP_TABLE = new Array(256);
+    var LOG_TABLE = new Array(256);
+
+    // initialize tables
+    for (var i = 0; i < 8; i += 1) {
+      EXP_TABLE[i] = 1 << i;
+    }
+    for (var i = 8; i < 256; i += 1) {
+      EXP_TABLE[i] = EXP_TABLE[i - 4]
+        ^ EXP_TABLE[i - 5]
+        ^ EXP_TABLE[i - 6]
+        ^ EXP_TABLE[i - 8];
+    }
+    for (var i = 0; i < 255; i += 1) {
+      LOG_TABLE[EXP_TABLE[i] ] = i;
+    }
+
+    var _this = {};
+
+    _this.glog = function(n) {
+
+      if (n < 1) {
+        throw 'glog(' + n + ')';
+      }
+
+      return LOG_TABLE[n];
+    };
+
+    _this.gexp = function(n) {
+
+      while (n < 0) {
+        n += 255;
+      }
+
+      while (n >= 256) {
+        n -= 255;
+      }
+
+      return EXP_TABLE[n];
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrPolynomial
+  //---------------------------------------------------------------------
+
+  function qrPolynomial(num, shift) {
+
+    if (typeof num.length == 'undefined') {
+      throw num.length + '/' + shift;
+    }
+
+    var _num = function() {
+      var offset = 0;
+      while (offset < num.length && num[offset] == 0) {
+        offset += 1;
+      }
+      var _num = new Array(num.length - offset + shift);
+      for (var i = 0; i < num.length - offset; i += 1) {
+        _num[i] = num[i + offset];
+      }
+      return _num;
+    }();
+
+    var _this = {};
+
+    _this.getAt = function(index) {
+      return _num[index];
+    };
+
+    _this.getLength = function() {
+      return _num.length;
+    };
+
+    _this.multiply = function(e) {
+
+      var num = new Array(_this.getLength() + e.getLength() - 1);
+
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        for (var j = 0; j < e.getLength(); j += 1) {
+          num[i + j] ^= QRMath.gexp(QRMath.glog(_this.getAt(i) ) + QRMath.glog(e.getAt(j) ) );
+        }
+      }
+
+      return qrPolynomial(num, 0);
+    };
+
+    _this.mod = function(e) {
+
+      if (_this.getLength() - e.getLength() < 0) {
+        return _this;
+      }
+
+      var ratio = QRMath.glog(_this.getAt(0) ) - QRMath.glog(e.getAt(0) );
+
+      var num = new Array(_this.getLength() );
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        num[i] = _this.getAt(i);
+      }
+
+      for (var i = 0; i < e.getLength(); i += 1) {
+        num[i] ^= QRMath.gexp(QRMath.glog(e.getAt(i) ) + ratio);
+      }
+
+      // recursive call
+      return qrPolynomial(num, 0).mod(e);
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // QRRSBlock
+  //---------------------------------------------------------------------
+
+  var QRRSBlock = function() {
+
+    var RS_BLOCK_TABLE = [
+
+      // L
+      // M
+      // Q
+      // H
+
+      // 1
+      [1, 26, 19],
+      [1, 26, 16],
+      [1, 26, 13],
+      [1, 26, 9],
+
+      // 2
+      [1, 44, 34],
+      [1, 44, 28],
+      [1, 44, 22],
+      [1, 44, 16],
+
+      // 3
+      [1, 70, 55],
+      [1, 70, 44],
+      [2, 35, 17],
+      [2, 35, 13],
+
+      // 4
+      [1, 100, 80],
+      [2, 50, 32],
+      [2, 50, 24],
+      [4, 25, 9],
+
+      // 5
+      [1, 134, 108],
+      [2, 67, 43],
+      [2, 33, 15, 2, 34, 16],
+      [2, 33, 11, 2, 34, 12],
+
+      // 6
+      [2, 86, 68],
+      [4, 43, 27],
+      [4, 43, 19],
+      [4, 43, 15],
+
+      // 7
+      [2, 98, 78],
+      [4, 49, 31],
+      [2, 32, 14, 4, 33, 15],
+      [4, 39, 13, 1, 40, 14],
+
+      // 8
+      [2, 121, 97],
+      [2, 60, 38, 2, 61, 39],
+      [4, 40, 18, 2, 41, 19],
+      [4, 40, 14, 2, 41, 15],
+
+      // 9
+      [2, 146, 116],
+      [3, 58, 36, 2, 59, 37],
+      [4, 36, 16, 4, 37, 17],
+      [4, 36, 12, 4, 37, 13],
+
+      // 10
+      [2, 86, 68, 2, 87, 69],
+      [4, 69, 43, 1, 70, 44],
+      [6, 43, 19, 2, 44, 20],
+      [6, 43, 15, 2, 44, 16],
+
+      // 11
+      [4, 101, 81],
+      [1, 80, 50, 4, 81, 51],
+      [4, 50, 22, 4, 51, 23],
+      [3, 36, 12, 8, 37, 13],
+
+      // 12
+      [2, 116, 92, 2, 117, 93],
+      [6, 58, 36, 2, 59, 37],
+      [4, 46, 20, 6, 47, 21],
+      [7, 42, 14, 4, 43, 15],
+
+      // 13
+      [4, 133, 107],
+      [8, 59, 37, 1, 60, 38],
+      [8, 44, 20, 4, 45, 21],
+      [12, 33, 11, 4, 34, 12],
+
+      // 14
+      [3, 145, 115, 1, 146, 116],
+      [4, 64, 40, 5, 65, 41],
+      [11, 36, 16, 5, 37, 17],
+      [11, 36, 12, 5, 37, 13],
+
+      // 15
+      [5, 109, 87, 1, 110, 88],
+      [5, 65, 41, 5, 66, 42],
+      [5, 54, 24, 7, 55, 25],
+      [11, 36, 12, 7, 37, 13],
+
+      // 16
+      [5, 122, 98, 1, 123, 99],
+      [7, 73, 45, 3, 74, 46],
+      [15, 43, 19, 2, 44, 20],
+      [3, 45, 15, 13, 46, 16],
+
+      // 17
+      [1, 135, 107, 5, 136, 108],
+      [10, 74, 46, 1, 75, 47],
+      [1, 50, 22, 15, 51, 23],
+      [2, 42, 14, 17, 43, 15],
+
+      // 18
+      [5, 150, 120, 1, 151, 121],
+      [9, 69, 43, 4, 70, 44],
+      [17, 50, 22, 1, 51, 23],
+      [2, 42, 14, 19, 43, 15],
+
+      // 19
+      [3, 141, 113, 4, 142, 114],
+      [3, 70, 44, 11, 71, 45],
+      [17, 47, 21, 4, 48, 22],
+      [9, 39, 13, 16, 40, 14],
+
+      // 20
+      [3, 135, 107, 5, 136, 108],
+      [3, 67, 41, 13, 68, 42],
+      [15, 54, 24, 5, 55, 25],
+      [15, 43, 15, 10, 44, 16],
+
+      // 21
+      [4, 144, 116, 4, 145, 117],
+      [17, 68, 42],
+      [17, 50, 22, 6, 51, 23],
+      [19, 46, 16, 6, 47, 17],
+
+      // 22
+      [2, 139, 111, 7, 140, 112],
+      [17, 74, 46],
+      [7, 54, 24, 16, 55, 25],
+      [34, 37, 13],
+
+      // 23
+      [4, 151, 121, 5, 152, 122],
+      [4, 75, 47, 14, 76, 48],
+      [11, 54, 24, 14, 55, 25],
+      [16, 45, 15, 14, 46, 16],
+
+      // 24
+      [6, 147, 117, 4, 148, 118],
+      [6, 73, 45, 14, 74, 46],
+      [11, 54, 24, 16, 55, 25],
+      [30, 46, 16, 2, 47, 17],
+
+      // 25
+      [8, 132, 106, 4, 133, 107],
+      [8, 75, 47, 13, 76, 48],
+      [7, 54, 24, 22, 55, 25],
+      [22, 45, 15, 13, 46, 16],
+
+      // 26
+      [10, 142, 114, 2, 143, 115],
+      [19, 74, 46, 4, 75, 47],
+      [28, 50, 22, 6, 51, 23],
+      [33, 46, 16, 4, 47, 17],
+
+      // 27
+      [8, 152, 122, 4, 153, 123],
+      [22, 73, 45, 3, 74, 46],
+      [8, 53, 23, 26, 54, 24],
+      [12, 45, 15, 28, 46, 16],
+
+      // 28
+      [3, 147, 117, 10, 148, 118],
+      [3, 73, 45, 23, 74, 46],
+      [4, 54, 24, 31, 55, 25],
+      [11, 45, 15, 31, 46, 16],
+
+      // 29
+      [7, 146, 116, 7, 147, 117],
+      [21, 73, 45, 7, 74, 46],
+      [1, 53, 23, 37, 54, 24],
+      [19, 45, 15, 26, 46, 16],
+
+      // 30
+      [5, 145, 115, 10, 146, 116],
+      [19, 75, 47, 10, 76, 48],
+      [15, 54, 24, 25, 55, 25],
+      [23, 45, 15, 25, 46, 16],
+
+      // 31
+      [13, 145, 115, 3, 146, 116],
+      [2, 74, 46, 29, 75, 47],
+      [42, 54, 24, 1, 55, 25],
+      [23, 45, 15, 28, 46, 16],
+
+      // 32
+      [17, 145, 115],
+      [10, 74, 46, 23, 75, 47],
+      [10, 54, 24, 35, 55, 25],
+      [19, 45, 15, 35, 46, 16],
+
+      // 33
+      [17, 145, 115, 1, 146, 116],
+      [14, 74, 46, 21, 75, 47],
+      [29, 54, 24, 19, 55, 25],
+      [11, 45, 15, 46, 46, 16],
+
+      // 34
+      [13, 145, 115, 6, 146, 116],
+      [14, 74, 46, 23, 75, 47],
+      [44, 54, 24, 7, 55, 25],
+      [59, 46, 16, 1, 47, 17],
+
+      // 35
+      [12, 151, 121, 7, 152, 122],
+      [12, 75, 47, 26, 76, 48],
+      [39, 54, 24, 14, 55, 25],
+      [22, 45, 15, 41, 46, 16],
+
+      // 36
+      [6, 151, 121, 14, 152, 122],
+      [6, 75, 47, 34, 76, 48],
+      [46, 54, 24, 10, 55, 25],
+      [2, 45, 15, 64, 46, 16],
+
+      // 37
+      [17, 152, 122, 4, 153, 123],
+      [29, 74, 46, 14, 75, 47],
+      [49, 54, 24, 10, 55, 25],
+      [24, 45, 15, 46, 46, 16],
+
+      // 38
+      [4, 152, 122, 18, 153, 123],
+      [13, 74, 46, 32, 75, 47],
+      [48, 54, 24, 14, 55, 25],
+      [42, 45, 15, 32, 46, 16],
+
+      // 39
+      [20, 147, 117, 4, 148, 118],
+      [40, 75, 47, 7, 76, 48],
+      [43, 54, 24, 22, 55, 25],
+      [10, 45, 15, 67, 46, 16],
+
+      // 40
+      [19, 148, 118, 6, 149, 119],
+      [18, 75, 47, 31, 76, 48],
+      [34, 54, 24, 34, 55, 25],
+      [20, 45, 15, 61, 46, 16]
+    ];
+
+    var qrRSBlock = function(totalCount, dataCount) {
+      var _this = {};
+      _this.totalCount = totalCount;
+      _this.dataCount = dataCount;
+      return _this;
+    };
+
+    var _this = {};
+
+    var getRsBlockTable = function(typeNumber, errorCorrectionLevel) {
+
+      switch(errorCorrectionLevel) {
+      case QRErrorCorrectionLevel.L :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+      case QRErrorCorrectionLevel.M :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+      case QRErrorCorrectionLevel.Q :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+      case QRErrorCorrectionLevel.H :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+      default :
+        return undefined;
+      }
+    };
+
+    _this.getRSBlocks = function(typeNumber, errorCorrectionLevel) {
+
+      var rsBlock = getRsBlockTable(typeNumber, errorCorrectionLevel);
+
+      if (typeof rsBlock == 'undefined') {
+        throw 'bad rs block @ typeNumber:' + typeNumber +
+            '/errorCorrectionLevel:' + errorCorrectionLevel;
+      }
+
+      var length = rsBlock.length / 3;
+
+      var list = [];
+
+      for (var i = 0; i < length; i += 1) {
+
+        var count = rsBlock[i * 3 + 0];
+        var totalCount = rsBlock[i * 3 + 1];
+        var dataCount = rsBlock[i * 3 + 2];
+
+        for (var j = 0; j < count; j += 1) {
+          list.push(qrRSBlock(totalCount, dataCount) );
+        }
+      }
+
+      return list;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrBitBuffer
+  //---------------------------------------------------------------------
+
+  var qrBitBuffer = function() {
+
+    var _buffer = [];
+    var _length = 0;
+
+    var _this = {};
+
+    _this.getBuffer = function() {
+      return _buffer;
+    };
+
+    _this.getAt = function(index) {
+      var bufIndex = Math.floor(index / 8);
+      return ( (_buffer[bufIndex] >>> (7 - index % 8) ) & 1) == 1;
+    };
+
+    _this.put = function(num, length) {
+      for (var i = 0; i < length; i += 1) {
+        _this.putBit( ( (num >>> (length - i - 1) ) & 1) == 1);
+      }
+    };
+
+    _this.getLengthInBits = function() {
+      return _length;
+    };
+
+    _this.putBit = function(bit) {
+
+      var bufIndex = Math.floor(_length / 8);
+      if (_buffer.length <= bufIndex) {
+        _buffer.push(0);
+      }
+
+      if (bit) {
+        _buffer[bufIndex] |= (0x80 >>> (_length % 8) );
+      }
+
+      _length += 1;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrNumber
+  //---------------------------------------------------------------------
+
+  var qrNumber = function(data) {
+
+    var _mode = QRMode.MODE_NUMBER;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _data;
+
+      var i = 0;
+
+      while (i + 2 < data.length) {
+        buffer.put(strToNum(data.substring(i, i + 3) ), 10);
+        i += 3;
+      }
+
+      if (i < data.length) {
+        if (data.length - i == 1) {
+          buffer.put(strToNum(data.substring(i, i + 1) ), 4);
+        } else if (data.length - i == 2) {
+          buffer.put(strToNum(data.substring(i, i + 2) ), 7);
+        }
+      }
+    };
+
+    var strToNum = function(s) {
+      var num = 0;
+      for (var i = 0; i < s.length; i += 1) {
+        num = num * 10 + chatToNum(s.charAt(i) );
+      }
+      return num;
+    };
+
+    var chatToNum = function(c) {
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      }
+      throw 'illegal char :' + c;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrAlphaNum
+  //---------------------------------------------------------------------
+
+  var qrAlphaNum = function(data) {
+
+    var _mode = QRMode.MODE_ALPHA_NUM;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var s = _data;
+
+      var i = 0;
+
+      while (i + 1 < s.length) {
+        buffer.put(
+          getCode(s.charAt(i) ) * 45 +
+          getCode(s.charAt(i + 1) ), 11);
+        i += 2;
+      }
+
+      if (i < s.length) {
+        buffer.put(getCode(s.charAt(i) ), 6);
+      }
+    };
+
+    var getCode = function(c) {
+
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      } else if ('A' <= c && c <= 'Z') {
+        return c.charCodeAt(0) - 'A'.charCodeAt(0) + 10;
+      } else {
+        switch (c) {
+        case ' ' : return 36;
+        case '$' : return 37;
+        case '%' : return 38;
+        case '*' : return 39;
+        case '+' : return 40;
+        case '-' : return 41;
+        case '.' : return 42;
+        case '/' : return 43;
+        case ':' : return 44;
+        default :
+          throw 'illegal char :' + c;
+        }
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qr8BitByte
+  //---------------------------------------------------------------------
+
+  var qr8BitByte = function(data) {
+
+    var _mode = QRMode.MODE_8BIT_BYTE;
+    var _data = data;
+    var _bytes = qrcode.stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _bytes.length;
+    };
+
+    _this.write = function(buffer) {
+      for (var i = 0; i < _bytes.length; i += 1) {
+        buffer.put(_bytes[i], 8);
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrKanji
+  //---------------------------------------------------------------------
+
+  var qrKanji = function(data) {
+
+    var _mode = QRMode.MODE_KANJI;
+    var _data = data;
+
+    var stringToBytes = qrcode.stringToBytesFuncs['SJIS'];
+    if (!stringToBytes) {
+      throw 'sjis not supported.';
+    }
+    !function(c, code) {
+      // self test for sjis support.
+      var test = stringToBytes(c);
+      if (test.length != 2 || ( (test[0] << 8) | test[1]) != code) {
+        throw 'sjis not supported.';
+      }
+    }('\u53cb', 0x9746);
+
+    var _bytes = stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return ~~(_bytes.length / 2);
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _bytes;
+
+      var i = 0;
+
+      while (i + 1 < data.length) {
+
+        var c = ( (0xff & data[i]) << 8) | (0xff & data[i + 1]);
+
+        if (0x8140 <= c && c <= 0x9FFC) {
+          c -= 0x8140;
+        } else if (0xE040 <= c && c <= 0xEBBF) {
+          c -= 0xC140;
+        } else {
+          throw 'illegal char at ' + (i + 1) + '/' + c;
+        }
+
+        c = ( (c >>> 8) & 0xff) * 0xC0 + (c & 0xff);
+
+        buffer.put(c, 13);
+
+        i += 2;
+      }
+
+      if (i < data.length) {
+        throw 'illegal char at ' + (i + 1);
+      }
+    };
+
+    return _this;
+  };
+
+  //=====================================================================
+  // GIF Support etc.
+  //
+
+  //---------------------------------------------------------------------
+  // byteArrayOutputStream
+  //---------------------------------------------------------------------
+
+  var byteArrayOutputStream = function() {
+
+    var _bytes = [];
+
+    var _this = {};
+
+    _this.writeByte = function(b) {
+      _bytes.push(b & 0xff);
+    };
+
+    _this.writeShort = function(i) {
+      _this.writeByte(i);
+      _this.writeByte(i >>> 8);
+    };
+
+    _this.writeBytes = function(b, off, len) {
+      off = off || 0;
+      len = len || b.length;
+      for (var i = 0; i < len; i += 1) {
+        _this.writeByte(b[i + off]);
+      }
+    };
+
+    _this.writeString = function(s) {
+      for (var i = 0; i < s.length; i += 1) {
+        _this.writeByte(s.charCodeAt(i) );
+      }
+    };
+
+    _this.toByteArray = function() {
+      return _bytes;
+    };
+
+    _this.toString = function() {
+      var s = '';
+      s += '[';
+      for (var i = 0; i < _bytes.length; i += 1) {
+        if (i > 0) {
+          s += ',';
+        }
+        s += _bytes[i];
+      }
+      s += ']';
+      return s;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64EncodeOutputStream
+  //---------------------------------------------------------------------
+
+  var base64EncodeOutputStream = function() {
+
+    var _buffer = 0;
+    var _buflen = 0;
+    var _length = 0;
+    var _base64 = '';
+
+    var _this = {};
+
+    var writeEncoded = function(b) {
+      _base64 += String.fromCharCode(encode(b & 0x3f) );
+    };
+
+    var encode = function(n) {
+      if (n < 0) {
+        // error.
+      } else if (n < 26) {
+        return 0x41 + n;
+      } else if (n < 52) {
+        return 0x61 + (n - 26);
+      } else if (n < 62) {
+        return 0x30 + (n - 52);
+      } else if (n == 62) {
+        return 0x2b;
+      } else if (n == 63) {
+        return 0x2f;
+      }
+      throw 'n:' + n;
+    };
+
+    _this.writeByte = function(n) {
+
+      _buffer = (_buffer << 8) | (n & 0xff);
+      _buflen += 8;
+      _length += 1;
+
+      while (_buflen >= 6) {
+        writeEncoded(_buffer >>> (_buflen - 6) );
+        _buflen -= 6;
+      }
+    };
+
+    _this.flush = function() {
+
+      if (_buflen > 0) {
+        writeEncoded(_buffer << (6 - _buflen) );
+        _buffer = 0;
+        _buflen = 0;
+      }
+
+      if (_length % 3 != 0) {
+        // padding
+        var padlen = 3 - _length % 3;
+        for (var i = 0; i < padlen; i += 1) {
+          _base64 += '=';
+        }
+      }
+    };
+
+    _this.toString = function() {
+      return _base64;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64DecodeInputStream
+  //---------------------------------------------------------------------
+
+  var base64DecodeInputStream = function(str) {
+
+    var _str = str;
+    var _pos = 0;
+    var _buffer = 0;
+    var _buflen = 0;
+
+    var _this = {};
+
+    _this.read = function() {
+
+      while (_buflen < 8) {
+
+        if (_pos >= _str.length) {
+          if (_buflen == 0) {
+            return -1;
+          }
+          throw 'unexpected end of file./' + _buflen;
+        }
+
+        var c = _str.charAt(_pos);
+        _pos += 1;
+
+        if (c == '=') {
+          _buflen = 0;
+          return -1;
+        } else if (c.match(/^\s$/) ) {
+          // ignore if whitespace.
+          continue;
+        }
+
+        _buffer = (_buffer << 6) | decode(c.charCodeAt(0) );
+        _buflen += 6;
+      }
+
+      var n = (_buffer >>> (_buflen - 8) ) & 0xff;
+      _buflen -= 8;
+      return n;
+    };
+
+    var decode = function(c) {
+      if (0x41 <= c && c <= 0x5a) {
+        return c - 0x41;
+      } else if (0x61 <= c && c <= 0x7a) {
+        return c - 0x61 + 26;
+      } else if (0x30 <= c && c <= 0x39) {
+        return c - 0x30 + 52;
+      } else if (c == 0x2b) {
+        return 62;
+      } else if (c == 0x2f) {
+        return 63;
+      } else {
+        throw 'c:' + c;
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // gifImage (B/W)
+  //---------------------------------------------------------------------
+
+  var gifImage = function(width, height) {
+
+    var _width = width;
+    var _height = height;
+    var _data = new Array(width * height);
+
+    var _this = {};
+
+    _this.setPixel = function(x, y, pixel) {
+      _data[y * _width + x] = pixel;
+    };
+
+    _this.write = function(out) {
+
+      //---------------------------------
+      // GIF Signature
+
+      out.writeString('GIF87a');
+
+      //---------------------------------
+      // Screen Descriptor
+
+      out.writeShort(_width);
+      out.writeShort(_height);
+
+      out.writeByte(0x80); // 2bit
+      out.writeByte(0);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Global Color Map
+
+      // black
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+
+      // white
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+
+      //---------------------------------
+      // Image Descriptor
+
+      out.writeString(',');
+      out.writeShort(0);
+      out.writeShort(0);
+      out.writeShort(_width);
+      out.writeShort(_height);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Local Color Map
+
+      //---------------------------------
+      // Raster Data
+
+      var lzwMinCodeSize = 2;
+      var raster = getLZWRaster(lzwMinCodeSize);
+
+      out.writeByte(lzwMinCodeSize);
+
+      var offset = 0;
+
+      while (raster.length - offset > 255) {
+        out.writeByte(255);
+        out.writeBytes(raster, offset, 255);
+        offset += 255;
+      }
+
+      out.writeByte(raster.length - offset);
+      out.writeBytes(raster, offset, raster.length - offset);
+      out.writeByte(0x00);
+
+      //---------------------------------
+      // GIF Terminator
+      out.writeString(';');
+    };
+
+    var bitOutputStream = function(out) {
+
+      var _out = out;
+      var _bitLength = 0;
+      var _bitBuffer = 0;
+
+      var _this = {};
+
+      _this.write = function(data, length) {
+
+        if ( (data >>> length) != 0) {
+          throw 'length over';
+        }
+
+        while (_bitLength + length >= 8) {
+          _out.writeByte(0xff & ( (data << _bitLength) | _bitBuffer) );
+          length -= (8 - _bitLength);
+          data >>>= (8 - _bitLength);
+          _bitBuffer = 0;
+          _bitLength = 0;
+        }
+
+        _bitBuffer = (data << _bitLength) | _bitBuffer;
+        _bitLength = _bitLength + length;
+      };
+
+      _this.flush = function() {
+        if (_bitLength > 0) {
+          _out.writeByte(_bitBuffer);
+        }
+      };
+
+      return _this;
+    };
+
+    var getLZWRaster = function(lzwMinCodeSize) {
+
+      var clearCode = 1 << lzwMinCodeSize;
+      var endCode = (1 << lzwMinCodeSize) + 1;
+      var bitLength = lzwMinCodeSize + 1;
+
+      // Setup LZWTable
+      var table = lzwTable();
+
+      for (var i = 0; i < clearCode; i += 1) {
+        table.add(String.fromCharCode(i) );
+      }
+      table.add(String.fromCharCode(clearCode) );
+      table.add(String.fromCharCode(endCode) );
+
+      var byteOut = byteArrayOutputStream();
+      var bitOut = bitOutputStream(byteOut);
+
+      // clear code
+      bitOut.write(clearCode, bitLength);
+
+      var dataIndex = 0;
+
+      var s = String.fromCharCode(_data[dataIndex]);
+      dataIndex += 1;
+
+      while (dataIndex < _data.length) {
+
+        var c = String.fromCharCode(_data[dataIndex]);
+        dataIndex += 1;
+
+        if (table.contains(s + c) ) {
+
+          s = s + c;
+
+        } else {
+
+          bitOut.write(table.indexOf(s), bitLength);
+
+          if (table.size() < 0xfff) {
+
+            if (table.size() == (1 << bitLength) ) {
+              bitLength += 1;
+            }
+
+            table.add(s + c);
+          }
+
+          s = c;
+        }
+      }
+
+      bitOut.write(table.indexOf(s), bitLength);
+
+      // end code
+      bitOut.write(endCode, bitLength);
+
+      bitOut.flush();
+
+      return byteOut.toByteArray();
+    };
+
+    var lzwTable = function() {
+
+      var _map = {};
+      var _size = 0;
+
+      var _this = {};
+
+      _this.add = function(key) {
+        if (_this.contains(key) ) {
+          throw 'dup key:' + key;
+        }
+        _map[key] = _size;
+        _size += 1;
+      };
+
+      _this.size = function() {
+        return _size;
+      };
+
+      _this.indexOf = function(key) {
+        return _map[key];
+      };
+
+      _this.contains = function(key) {
+        return typeof _map[key] != 'undefined';
+      };
+
+      return _this;
+    };
+
+    return _this;
+  };
+
+  var createDataURL = function(width, height, getPixel) {
+    var gif = gifImage(width, height);
+    for (var y = 0; y < height; y += 1) {
+      for (var x = 0; x < width; x += 1) {
+        gif.setPixel(x, y, getPixel(x, y) );
+      }
+    }
+
+    var b = byteArrayOutputStream();
+    gif.write(b);
+
+    var base64 = base64EncodeOutputStream();
+    var bytes = b.toByteArray();
+    for (var i = 0; i < bytes.length; i += 1) {
+      base64.writeByte(bytes[i]);
+    }
+    base64.flush();
+
+    return 'data:image/gif;base64,' + base64;
+  };
+
+  //---------------------------------------------------------------------
+  // returns qrcode function.
+
+  return qrcode;
+}();
+
+// multibyte support
+!function() {
+
+  qrcode.stringToBytesFuncs['UTF-8'] = function(s) {
+    // http://stackoverflow.com/questions/18729405/how-to-convert-utf8-string-to-byte-array
+    function toUTF8Array(str) {
+      var utf8 = [];
+      for (var i=0; i < str.length; i++) {
+        var charcode = str.charCodeAt(i);
+        if (charcode < 0x80) utf8.push(charcode);
+        else if (charcode < 0x800) {
+          utf8.push(0xc0 | (charcode >> 6),
+              0x80 | (charcode & 0x3f));
+        }
+        else if (charcode < 0xd800 || charcode >= 0xe000) {
+          utf8.push(0xe0 | (charcode >> 12),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+        // surrogate pair
+        else {
+          i++;
+          // UTF-16 encodes 0x10000-0x10FFFF by
+          // subtracting 0x10000 and splitting the
+          // 20 bits of 0x0-0xFFFFF into two halves
+          charcode = 0x10000 + (((charcode & 0x3ff)<<10)
+            | (str.charCodeAt(i) & 0x3ff));
+          utf8.push(0xf0 | (charcode >>18),
+              0x80 | ((charcode>>12) & 0x3f),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+      }
+      return utf8;
+    }
+    return toUTF8Array(s);
+  };
+
+}();
+
+(function (factory) {
+  if (typeof define === 'function' && define.amd) {
+      define([], factory);
+  } else if (typeof exports === 'object') {
+      module.exports = factory();
+  }
+}(function () {
+    return qrcode;
+}));
+
+</script>
+<script>
+(function(){
+const STORE = 'fa-register-v1';
+const DEFAULT_CATS = [
+  {code:'BD', acc:'1702100', name:'ส่วนปรับปรุงอาคาร', life:10, dep:true},
+  {code:'OF', acc:'1704001', name:'อุปกรณ์เครื่องใช้สำนักงาน', life:5, dep:true},
+  {code:'FF', acc:'1703001', name:'เครื่องตกแต่งติดตั้ง', life:5, dep:true},
+  {code:'KT', acc:'1704000', name:'เครื่องมือเครื่องใช้ในครัว', life:5, dep:true},
+  {code:'VH', acc:'1706000', name:'ยานพาหนะ', life:5, dep:true},
+  {code:'SW', acc:'1801000', name:'ซอฟต์แวร์และแอปพลิเคชั่น', life:3, dep:true},
+  {code:'CP', acc:'1707000', name:'งานระหว่างก่อสร้าง', life:0, dep:false},
+  {code:'CS', acc:'1306000', name:'วัสดุสิ้นเปลือง', life:0, dep:false, supply:true}
+];
+
+let TR = [];
+let TR_SKIPPED = [];
+let TR_PENDING = [];
+function seed(){
+  let n = 0;
+  const assets = TR.map(t => { const [code,c,name,branch,vendor,invoice,acqDate,cost,life,refs,po] = t;
+    return {id:'a'+(++n), code, cat:c, name, branch, dept:'', custodian:'', vendor, invoice, acqDate, cost, salvage:1, life, status:'active', photos:[], legacy:'', note:'',
+      refs, po, src:'trcloud', history:[{date:acqDate, text:'นำเข้าจาก TRCloud (' + refs.join(', ') + ')'}]}; });
+  const branches = Array.from(new Set(assets.map(a => a.branch))).sort((x,y)=>x.localeCompare(y,'th'));
+  return {cats:JSON.parse(JSON.stringify(DEFAULT_CATS)), branches, threshold:5000, assets, closed:[], seq:n, view:'overview', skipped:TR_SKIPPED.slice(), pending:TR_PENDING.slice(), rejected:[], label:(state&&state.label)||undefined};
+}
+
+let state = null; state = seed();
+let BOOTED = false, SNAP = {a:{}, q:{}, s:'', c:''}, PRINT_URL = '', USER = '';
+const gs = (fn, ...args) => new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args));
+const uid = () => 'a' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const stripA = a => JSON.stringify(a, (k, v) => k === 'src' ? undefined : v);
+const settingsOf = () => ({threshold: state.threshold, branches: state.branches, closed: state.closed, skipped: state.skipped || [], label: state.label || {}});
+const queueAll = () => (state.pending || []).map(p => Object.assign({}, p, {status:'pending'})).concat((state.rejected || []).map(p => Object.assign({}, p, {status:'rejected'})));
+function snapshot(){
+  SNAP = {a:{}, q:{}, s: JSON.stringify(settingsOf()), c: JSON.stringify(state.cats)};
+  state.assets.forEach(a => SNAP.a[a.id] = stripA(a));
+  queueAll().forEach(p => SNAP.q[p.pid] = JSON.stringify(p));
+}
+function setSync(st, text){ const b = $('#sync'); if (!b) return; b.dataset.state = st; b.querySelector('span').textContent = text; }
+let saveChain = Promise.resolve(), inflight = 0;
+function save(){
+  if (!BOOTED) return true;
+  const ch = {assets:[], deleteAssets:[], queue:[], deleteQueue:[], newIds:[], log:[]};
+  const seen = {};
+  state.assets.forEach(a => {
+    seen[a.id] = 1;
+    const j = stripA(a), fresh = a.photos.some(p => p.src && !p.driveId);
+    if (SNAP.a[a.id] === j && !fresh) return;
+    const copy = JSON.parse(JSON.stringify(a, (k, v) => k === 'src' ? undefined : v));
+    copy.photos = a.photos.map(p => p.driveId ? {id:p.id, driveId:p.driveId, primary:!!p.primary} : {id:p.id, src:p.src, primary:!!p.primary});
+    ch.assets.push(copy);
+    if (!(a.id in SNAP.a)) ch.newIds.push(a.id);
+    ch.log.push((a.id in SNAP.a ? 'แก้ไข ' : 'เพิ่ม ') + (a.code || a.id) + ' ' + a.name);
+  });
+  Object.keys(SNAP.a).forEach(id => { if (!seen[id]) ch.deleteAssets.push(id); });
+  const seenQ = {};
+  queueAll().forEach(p => { seenQ[p.pid] = 1; if (SNAP.q[p.pid] !== JSON.stringify(p)) ch.queue.push(p); });
+  Object.keys(SNAP.q).forEach(id => { if (!seenQ[id]) ch.deleteQueue.push(id); });
+  if (JSON.stringify(settingsOf()) !== SNAP.s) ch.settings = settingsOf();
+  if (JSON.stringify(state.cats) !== SNAP.c){ ch.settings = ch.settings || settingsOf(); ch.cats = state.cats; }
+  if (!ch.assets.length && !ch.deleteAssets.length && !ch.queue.length && !ch.deleteQueue.length && !ch.settings) return true;
+  if (ch.log.length > 30) ch.log = [ch.log.length + ' รายการ (' + ch.log.slice(0, 3).join(' / ') + ' …)'];
+  const prev = SNAP; snapshot();
+  inflight++; setSync('busy', 'กำลังบันทึก…');
+  saveChain = saveChain.then(() => gs('saveChanges', ch)).then(res => {
+    let redraw = false;
+    Object.keys(res.codes || {}).forEach(id => {
+      const a = state.assets.find(x => x.id === id); if (!a) return;
+      Object.assign(a, res.codes[id]); redraw = true;
+      toast('มีคนใช้รหัสนี้ไปก่อน ระบบเปลี่ยนเป็น ' + codeText(a));
+    });
+    const pm = res.photos || {};
+    if (Object.keys(pm).length) state.assets.forEach(a => a.photos.forEach(p => { if (pm[p.id]) p.driveId = pm[p.id]; }));
+    state.assets.forEach(a => { if (res.codes && res.codes[a.id] || a.photos.some(p => pm[p.id])) SNAP.a[a.id] = stripA(a); });
+    if (redraw){ render(); if (drawer) renderDrawer(); }
+    if (--inflight === 0) setSync('on', 'บันทึกแล้ว');
+  }).catch(e => {
+    inflight--; SNAP = prev; setSync('off', 'บันทึกไม่สำเร็จ');
+    toast('บันทึกลง Google Sheet ไม่สำเร็จ: ' + (e && e.message || e) + ' ลองกดบันทึกอีกครั้ง หรือรีเฟรชหน้า');
+  });
+  return true;
+}
+function boot(){
+  $('#app').innerHTML = '<section class="card empty"><h2>กำลังโหลดข้อมูลจาก Google Sheet…</h2></section>';
+  gs('getState').then(s => {
+    const view = state.view;
+    state = Object.assign(seed(), s, {view});
+    if (!state.cats.length) state.cats = JSON.parse(JSON.stringify(DEFAULT_CATS));
+    DEFAULT_CATS.forEach(c => { if (!state.cats.some(x => x.code === c.code)) state.cats.push(JSON.parse(JSON.stringify(c))); });
+    state.branches.sort((x, y) => x.localeCompare(y, 'th'));
+    PRINT_URL = s.printUrl || ''; USER = s.user || '';
+    snapshot(); BOOTED = true; setSync('on', USER ? USER.split('@')[0] : 'เชื่อมต่อแล้ว');
+    render(); loadPhotos();
+  }).catch(e => {
+    setSync('off', 'โหลดไม่สำเร็จ');
+    $('#app').innerHTML = `<section class="card empty"><h2>โหลดข้อมูลไม่สำเร็จ</h2><p class="note">${esc(e && e.message || e)}</p><p class="note">ตรวจว่าเปิดสิทธิ์แก้ไข Google Sheet ให้บัญชีนี้แล้ว จากนั้นรีเฟรชหน้า</p></section>`;
+  });
+}
+async function loadPhotos(){
+  const need = [];
+  state.assets.forEach(a => a.photos.forEach(p => { if (p.driveId && !p.src) need.push(p); }));
+  need.sort((x, y) => (y.primary ? 1 : 0) - (x.primary ? 1 : 0));
+  for (let i = 0; i < need.length; i += 20){
+    const chunk = need.slice(i, i + 20);
+    try {
+      const got = await gs('getPhotos', chunk.map(p => p.driveId));
+      chunk.forEach(p => { if (got[p.driveId]) p.src = got[p.driveId]; });
+      render(); if (drawer && drawer.mode === 'detail') renderDrawer();
+    } catch(e){ break; }
+  }
+}
+
+/* ---------- utils ---------- */
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const r2 = n => Math.round(n*100)/100;
+const fmt = n => (Number(n)||0).toLocaleString('th-TH',{minimumFractionDigits:2, maximumFractionDigits:2});
+const pad = (n,w=2) => String(n).padStart(w,'0');
+const today = (() => { const d = new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); })();
+const dUTC = s => Date.UTC(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10));
+const isoUTC = t => new Date(t).toISOString().slice(0,10);
+const thDate = s => s ? new Date(dUTC(s)).toLocaleDateString('th-TH',{day:'numeric', month:'short', year:'numeric', timeZone:'UTC'}) : '–';
+const monthEnd = ym => isoUTC(Date.UTC(+ym.slice(0,4), +ym.slice(5,7), 0));
+const prevMonthEnd = ym => isoUTC(Date.UTC(+ym.slice(0,4), +ym.slice(5,7)-1, 0));
+const thMonth = ym => new Date(Date.UTC(+ym.slice(0,4), +ym.slice(5,7)-1, 1)).toLocaleDateString('th-TH',{month:'long', year:'numeric', timeZone:'UTC'});
+const cat = c => state.cats.find(x => x.code === c) || {code:c, name:c, life:0, dep:false, acc:''};
+let toastT;
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
+
+/* ---------- accounting ---------- */
+function nextCode(c, date){
+  const prefix = c + date.slice(2,4) + date.slice(5,7);
+  let max = 0;
+  state.assets.forEach(a => { if (a.code.startsWith(prefix + '/')) max = Math.max(max, parseInt(a.code.slice(prefix.length+1,prefix.length+5),10) || 0); });
+  return prefix + '/' + pad(max+1, 4);
+}
+const depreciable = a => cat(a.cat).dep !== false && a.life > 0;
+function endOfUse(a){ // last date the asset is on the books
+  if (a.disposal) return a.disposal.date;
+  if (a.transfer) return a.transfer.date;
+  return null;
+}
+function accDep(a, asOf){
+  if (!depreciable(a)) return 0;
+  let end = asOf; const e = endOfUse(a); if (e && e < end) end = e;
+  if (end < a.acqDate) return 0;
+  const base = a.cost - a.salvage; if (base <= 0) return 0;
+  const days = (dUTC(end) - dUTC(a.acqDate)) / 864e5 + 1;
+  return r2(Math.min(base, base / a.life * days / 365));
+}
+const onBooks = (a, d) => a.acqDate <= d && !(endOfUse(a) && endOfUse(a) < d);
+const nbv = (a, d) => onBooks(a, d) ? r2(a.cost - accDep(a, d)) : 0;
+function fullyDate(a){
+  if (!depreciable(a)) return null;
+  const y = +a.acqDate.slice(0,4), m = +a.acqDate.slice(5,7), d = +a.acqDate.slice(8,10);
+  return isoUTC(Date.UTC(y + a.life, m-1, d) - 864e5);
+}
+function statusOf(a, d=today){
+  if (a.status === 'disposed') return ['จำหน่ายแล้ว','p-off'];
+  if (a.status === 'transferred') return ['โอนเป็นสินทรัพย์แล้ว','p-off'];
+  if (a.status === 'cip') return ['ระหว่างก่อสร้าง','p-cip'];
+  if (isSup(a)) return ['วัสดุสิ้นเปลือง','p-active'];
+  if (depreciable(a) && accDep(a, d) >= r2(a.cost - a.salvage)) return ['ค่าเสื่อมครบแล้ว','p-full'];
+  return ['ใช้งาน','p-active'];
+}
+function schedule(a){
+  const rows = []; if (!depreciable(a)) return rows;
+  const y0 = +a.acqDate.slice(0,4); let prev = 0;
+  for (let y = y0; y < y0 + 60; y++){
+    const acc = accDep(a, y + '-12-31'); const dep = r2(acc - prev);
+    if (dep <= 0 && y > y0) break;
+    rows.push({y, dep, acc, nbv: r2(a.cost - acc)}); prev = acc;
+  }
+  return rows;
+}
+
+/* ---------- views ---------- */
+let ui = {pq:'', pqcat:'', asOf: today, q:'', fcat:'', fbranch:'', fstatus:'', month: today.slice(0,7), resetArmed:false, mode:'card', limit:48};
+
+function render(){
+  document.querySelectorAll('#nav button').forEach(b => b.setAttribute('aria-current', b.dataset.view === state.view));
+  const v = state.view;
+  $('#app').innerHTML = (!state.assets.length && !PQ().length && v !== 'settings') ? vEmpty() : v === 'pending' ? vPending() : v === 'register' ? vRegister() : v === 'dep' ? vDep() : v === 'settings' ? vSettings() : vOverview();
+  updPr(); const pc = $('#pcnt'); if (pc) pc.textContent = PQ().length || '';
+}
+
+function photoOf(a){ const p = a.photos.find(p => p.primary) || a.photos[0]; return p ? p.src : null; }
+function thumbHtml(a){ const s = photoOf(a); return s ? `<img class="thumb" src="${s}" alt="">` : `<div class="ph" style="${tint(a.cat)}">${svg(iconKey(a)).replace('<svg ','<svg width="24" height="24" ')}</div>`; }
+const ICONS = {
+ fridge:'<rect x="12" y="4" width="24" height="40" rx="3"/><path d="M12 18h24M16 10v4M16 24v8"/>',
+ ice:'<rect x="8" y="6" width="32" height="28" rx="3"/><path d="M8 16h32"/><rect x="15" y="21" width="7" height="7" rx="1.5"/><rect x="26" y="20" width="7" height="7" rx="1.5"/><path d="M14 34v8M34 34v8"/>',
+ blender:'<path d="M16 6h16l-3 22H19z"/><path d="M14 28h20v6a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4z"/><path d="M12 44h24M20 14h8"/>',
+ coffee:'<rect x="10" y="6" width="28" height="10" rx="2"/><path d="M14 16v22h20V16"/><path d="M19 23h10v5a5 5 0 0 1-10 0z"/><path d="M8 42h32"/>',
+ steel:'<path d="M4 20h40"/><path d="M8 20v22M40 20v22M8 33h32"/><path d="M16 20v-6a4 4 0 0 1 8 0v2"/>',
+ laptop:'<rect x="10" y="10" width="28" height="20" rx="2"/><path d="M4 36h40l-3 4H7z"/>',
+ tablet:'<rect x="12" y="4" width="24" height="40" rx="4"/><path d="M21 38h6"/>',
+ tv:'<rect x="4" y="8" width="40" height="26" rx="2"/><path d="M16 42h16M24 34v8"/>',
+ printer:'<path d="M14 18V6h20v12"/><rect x="6" y="18" width="36" height="16" rx="2"/><path d="M14 28h20v14H14zM35 24h.01"/>',
+ camera:'<path d="M6 14h8l3-5h14l3 5h8v24H6z"/><circle cx="24" cy="25" r="7"/>',
+ sign:'<rect x="4" y="12" width="40" height="18" rx="3"/><path d="M12 30v12M36 30v12M12 21h24M14 6l4 6M34 6l-4 6"/>',
+ aircon:'<rect x="4" y="8" width="40" height="16" rx="3"/><path d="M10 18h28M14 30c0 4-2 6-2 9M24 30c0 4-2 6-2 9M34 30c0 4-2 6-2 9"/>',
+ building:'<path d="M6 42h36M10 42V16l14-9 14 9v26"/><path d="M19 42V31h10v11M16 22h4M28 22h4"/>',
+ machine:'<rect x="6" y="14" width="36" height="22" rx="2"/><circle cx="18" cy="25" r="5"/><path d="M28 21h8M28 28h8M10 36v6M38 36v6M16 14V8h16v6"/>',
+ box:'<path d="M6 16l18-8 18 8v20l-18 8-18-8z"/><path d="M6 16l18 8 18-8M24 24v20"/>',
+ pot:'<path d="M8 18h32v16a8 8 0 0 1-8 8H16a8 8 0 0 1-8-8z"/><path d="M4 18h40M18 12h12M24 8v4"/>',
+ lamp:'<path d="M16 6h16l6 16H10z"/><path d="M24 22v16M14 42h20"/>',
+ truck:'<path d="M4 12h24v20H4zM28 20h10l6 6v6H28z"/><circle cx="12" cy="36" r="4"/><circle cx="36" cy="36" r="4"/>',
+ app:'<rect x="6" y="8" width="36" height="28" rx="3"/><path d="M6 16h36M18 23l-4 4 4 4M30 23l4 4-4 4"/>',
+ crane:'<path d="M10 42V8h4M10 8h30M14 8l-4 6M34 8v10"/><rect x="30" y="18" width="8" height="6"/><path d="M4 42h20"/>'
+};
+const ICON_RULES = [
+ ['ice', /น้ำแข็ง|ice maker|ice machine/i], ['coffee', /สตรีมนม|สตีมนม|กาแฟ|zenbrew|dispenser|ช็อต|มัทฉะ|espresso/i],
+ ['blender', /ปั่น|vitamix|juicer|ultramix|ผสม/i], ['aircon', /แอร์|ปรับอากาศ|คอมเพรสเซอร์/i],
+ ['fridge', /ตู้แช่|ตู้เย็น|sanden|chiller|ตู้กระจก|ตู้กระบะ|ตู้เเช่/i], ['camera', /กล้อง|camera|cctv/i],
+ ['tv', /\btv\b|ทีวี|จอ|monitor/i], ['laptop', /notebook|macbook|ideapad|mac mini|mac neo|คอม|aio|all.in.one|ออลอินวัน|desktop/i],
+ ['tablet', /ipad|tab\b|pos|โทรศัพท์|galaxy/i], ['printer', /ปริ้น|พิมพ์|pixma|เคลือบ|printer/i],
+ ['sign', /ป้าย|กล่องไฟ|led/i], ['steel', /ซิงค์|สแตนเลส|สเตนเลส|ถัง|รถเข็น|ชั้นวาง|โต๊ะ|บันได/i],
+ ['machine', /เครื่องจักร|ขนม|กวน|กระป๋อง|ฝุ่น|vacuum|เป่ามือ/i], ['building', /ปรับปรุง|รั้ว|พื้น|ไฟฟ้า|หลอดไฟ|โกดัง/i]
+];
+const CAT_ICON = {BD:'building', OF:'box', FF:'lamp', KT:'pot', VH:'truck', SW:'app', CP:'crane', CS:'box'};
+const isSup = a => !!cat(a.cat).supply;
+const codeText = a => a.docNo && (+a.seqTo||0) > (+a.seqFrom||0) ? a.code + '–' + pad(a.seqTo, 4) : a.code;
+const pieceFrom = doc => { let m = 0; state.assets.forEach(a => { if (a.docNo === doc) m = Math.max(m, +a.seqTo || +a.seqFrom || 0); }); return m + 1; };
+const supCode = (doc, qty) => { const f = pieceFrom(doc), t = f + Math.max(1, qty) - 1; return {code: doc + '/' + pad(f, 4), seqFrom: f, seqTo: t, text: doc + '/' + pad(f, 4) + (t > f ? '–' + pad(t, 4) : '')}; };
+const pieces = a => a.docNo ? Array.from({length: Math.max(1, (+a.seqTo||0) - (+a.seqFrom||0) + 1)}, (_, i) => Object.assign({}, a, {code: a.docNo + '/' + pad((+a.seqFrom||1) + i, 4)})) : [a];
+const unitCost = a => (+a.cost || 0) / Math.max(1, +a.qty || 1);
+const qtyText = a => (+a.qty || 1) > 1 || isSup(a) ? `${(+a.qty||1).toLocaleString('th-TH')} ${a.unit || 'ชิ้น'}` : '';
+const lowVal = a => cat(a.cat).dep !== false && unitCost(a) < state.threshold;
+const iconKey = a => { for (const [k, re] of ICON_RULES) if (re.test(a.name)) return k; return CAT_ICON[a.cat] || 'box'; };
+const svg = k => `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]}</svg>`;
+const tint = c => `background:var(--${c}-bg);color:var(--${c}-fg)`;
+function artHtml(a, cls=''){
+  const s = photoOf(a);
+  return `<div class="art ${cls}" style="${tint(a.cat)}">${s ? `<img src="${s}" alt="">` : svg(iconKey(a))}</div>`;
+}
+function cardHtml(a){
+  const [s, cls] = statusOf(a);
+  return `<button class="acard" data-open="${a.id}">
+    <div style="position:relative">${artHtml(a)}      <span class="tag" style="position:absolute;top:10px;left:10px;font-family:var(--f-mono);font-weight:600;font-size:12.5px;background:var(--surface);color:var(--ink);padding:3px 8px;border-radius:6px">${esc(codeText(a))}</span>
+      ${cls!=='p-active'?`<span class="pill ${cls}" style="position:absolute;top:10px;right:10px">${s}</span>`:''}</div>
+    <div class="meta"><div class="nm">${esc(a.name)}${qtyText(a)?` <span class="note">× ${esc(qtyText(a))}</span>`:''}</div><div class="br">${esc(a.branch)} · ${thDate(a.acqDate)}</div>
+      <div class="mrow"><small>ราคาทุน</small><b>${fmt(a.cost)}</b></div>
+      ${isSup(a) ? `<div class="mrow" style="border:0;padding:0;margin:0"><small>คงเหลือ${(a.counts||[]).length?'ตามผลนับ':''}</small><b>${((a.counts||[]).length ? a.counts[a.counts.length-1].qty : (+a.qty||1)).toLocaleString('th-TH')} ${esc(a.unit||'ชิ้น')}</b></div>` : `<div class="mrow" style="border:0;padding:0;margin:0"><small>มูลค่าสุทธิวันนี้</small><b>${fmt(nbv(a,today))}</b></div>`}</div></button>`;
+}
+
+
+function vOverview(){
+  const d = ui.asOf;
+  const allLive = state.assets.filter(a => onBooks(a, d));
+  const live = allLive.filter(a => !isSup(a)), sup = allLive.filter(isSup);
+  const supCost = sup.reduce((x,a)=>x+a.cost,0), supQty = sup.reduce((x,a)=>x+(+a.qty||1),0);
+  const cost = live.reduce((s,a)=>s+a.cost,0), acc = live.reduce((s,a)=>s+accDep(a,d),0);
+  const byCat = state.cats.filter(c => !c.supply).map(c => { const xs = live.filter(a => a.cat === c.code);
+    return {c, n:xs.length, cost:xs.reduce((s,a)=>s+a.cost,0), acc:xs.reduce((s,a)=>s+accDep(a,d),0)}; });
+  const maxCat = Math.max(1, ...byCat.map(r=>r.cost));
+  const brMap = {}; live.forEach(a => { (brMap[a.branch] = brMap[a.branch] || {n:0, cost:0}); brMap[a.branch].n++; brMap[a.branch].cost += a.cost; });
+  const brs = Object.entries(brMap).sort((x,y)=>y[1].cost-x[1].cost).slice(0,8); const maxBr = brs.length ? brs[0][1].cost : 1;
+  const noPhoto = live.filter(a => !a.photos.length).length;
+  const under = live.filter(lowVal).length;
+  const full = live.filter(a => statusOf(a,d)[0] === 'ค่าเสื่อมครบแล้ว').length;
+  const thisMonth = state.assets.reduce((s,a)=>s + r2(accDep(a, monthEnd(d.slice(0,7))) - accDep(a, prevMonthEnd(d.slice(0,7)))),0);
+  const recent = state.assets.slice().sort((x,y)=>y.acqDate.localeCompare(x.acqDate)||y.code.localeCompare(x.code)).slice(0,4);
+  return `
+  <div class="spread"><div><h1>ภาพรวมสินทรัพย์</h1><p class="sub">ยอด ณ วันที่ ${thDate(d)} · คลิกหมวดหรือสาขาเพื่อดูรายการ</p></div>
+    <label class="f" style="width:180px">ยอด ณ วันที่<input type="date" id="asof" value="${d}"></label></div>
+  <div class="kpis">
+    <div class="kpi"><small>สินทรัพย์ในทะเบียน</small><strong>${live.length.toLocaleString('th-TH')} ชิ้น</strong><em>${Object.keys(brMap).length} สาขา/หน่วยงาน</em></div>
+    <div class="kpi"><small>ราคาทุนรวม</small><strong>${fmt(cost)}</strong><em>บาท</em></div>
+    <div class="kpi"><small>ค่าเสื่อมราคาสะสม</small><strong>${fmt(acc)}</strong><em>เดือนนี้ ${fmt(thisMonth)} บาท</em></div>
+    <div class="kpi"><small>มูลค่าสุทธิตามบัญชี</small><strong>${fmt(cost-acc)}</strong><em>บาท</em></div>
+  </div>
+  <section><h2>หมวดสินทรัพย์</h2><div class="cattiles">
+    ${byCat.map(r => `<button class="ctile" data-gocat="${r.c.code}"><div class="ic" style="${tint(r.c.code)}">${svg(CAT_ICON[r.c.code])}</div>
+      <div class="t"><span>${r.c.code} · ${esc(r.c.name)}</span><strong>${r.n} ชิ้น</strong><span>ทุน ${fmt(r.cost)} · สุทธิ ${fmt(r.cost-r.acc)}</span>
+      <div class="meter"><i style="width:${(r.cost/maxCat*100).toFixed(1)}%;background:var(--${r.c.code}-fg)"></i></div></div></button>`).join('')}
+  </div></section>
+  <div class="split">
+    <section class="card"><h2>สาขาที่มีมูลค่าสินทรัพย์สูงสุด</h2><div class="blist">
+      ${brs.map(([b,v]) => `<div class="bitem" data-gobranch="${esc(b)}"><span>${esc(b)} <span class="note">· ${v.n} ชิ้น</span></span><b>${fmt(v.cost)}</b>
+        <div class="meter"><i style="width:${(v.cost/maxBr*100).toFixed(1)}%;background:var(--accent)"></i></div></div>`).join('')}
+    </div></section>
+    <section class="card"><h2>เรื่องที่ต้องดู</h2>
+      ${PQ().length?`<div class="alert"><span>รอขึ้นทะเบียน</span><b><button class="btn sm" data-goview="pending">${PQ().length} รายการ</button></b></div>`:''}
+      ${sup.length?`<div class="alert"><span>วัสดุสิ้นเปลือง (ไม่รวมในยอดสินทรัพย์)</span><b><button class="btn sm" data-gocat="CS">${sup.length} รายการ · ${supQty.toLocaleString('th-TH')} ชิ้น · ${fmt(supCost)} บาท</button></b></div>`:''}
+      <div class="alert"><span>ยังไม่มีรูปถ่ายจริง</span><b>${noPhoto} ชิ้น</b></div>
+      <div class="alert"><span>ราคาต่ำกว่าเกณฑ์ ${fmt(state.threshold)} บาท</span><b>${under} ชิ้น</b></div>
+      <div class="alert"><span>ค่าเสื่อมครบแล้วแต่ยังใช้งาน</span><b>${full} ชิ้น</b></div>
+      <div class="alert"><span>เอกสาร TRCloud ที่ไม่ได้นำเข้า</span><b>${(state.skipped||[]).length} เอกสาร</b></div>
+      <p class="note" style="margin:12px 0 0">ภาพในการ์ดเป็นภาพประกอบตามประเภทของ จนกว่าจะเพิ่มรูปถ่ายจริง</p>
+    </section>
+  </div>
+  <section><div class="spread" style="margin-bottom:12px"><h2 style="margin:0">ได้มาล่าสุด</h2><button class="btn sm" data-gocat="">ดูทั้งหมด</button></div>
+    <div class="cards">${recent.map(cardHtml).join('')}</div></section>
+  <section class="card"><h2>รายการจาก TRCloud ที่ไม่ได้นำเข้า ต้องตรวจสอบ</h2>
+    <p class="note" style="margin:0 0 10px">ดึงจากสมุดบัญชีแยกประเภท 1702100, 1703001, 1704000, 1704001 วันที่ 1 ม.ค.–10 พ.ย. 2026 รวมยอด Dr/Cr ตามเอกสารต้นทาง เอกสารที่ยอดสุทธิไม่เป็นบวกจึงไม่สร้างเป็นสินทรัพย์</p>
+    <div class="scroll"><table><thead><tr><th>เอกสาร</th><th>หมวด</th><th>รายการ</th><th>เหตุผล</th></tr></thead>
+    <tbody>${(state.skipped||[]).map(s=>`<tr><td class="code">${s[0]}</td><td>${s[1]}</td><td>${esc(s[2])}</td><td>${esc(s[3])}</td></tr>`).join('')}</tbody></table></div>
+  </section>`;
+}
+
+function filtered(){
+  const q = ui.q.trim().toLowerCase();
+  return state.assets.filter(a =>
+    (!ui.fcat || a.cat === ui.fcat) && (!ui.fbranch || a.branch === ui.fbranch) &&
+    (!ui.fstatus || statusOf(a)[0] === ui.fstatus) &&
+    (!q || [a.code,a.name,a.custodian,a.vendor,a.invoice,a.legacy].join(' ').toLowerCase().includes(q))
+  ).sort((x,y) => y.acqDate.localeCompare(x.acqDate) || x.code.localeCompare(y.code));
+}
+
+function vEmpty(){
+  return `<section class="card empty">
+    <h2>ยังไม่มีข้อมูลใน Google Sheet</h2>
+    <p class="note" style="margin:0;max-width:520px">นำเข้าไฟล์ข้อมูลทรัพย์สิน (.json) ที่ได้จาก TRCloud ครั้งแรกครั้งเดียว ระบบจะบันทึกลงชีตให้ทั้งหมด</p>
+    <div class="row" style="justify-content:center"><label class="btn pri filebtn">นำเข้าไฟล์ข้อมูล<input type="file" accept=".json,application/json" id="importfile"></label>
+    <button class="btn" data-act="new">+ เพิ่มสินทรัพย์เอง</button></div>
+  </section>`;
+}
+
+function vRegister(){
+  const rows = filtered();
+  const statuses = ['ใช้งาน','ระหว่างก่อสร้าง','ค่าเสื่อมครบแล้ว','จำหน่ายแล้ว','โอนเป็นสินทรัพย์แล้ว'];
+  const counts = {}; state.assets.forEach(a => counts[a.cat] = (counts[a.cat]||0)+1);
+  const shown = rows.slice(0, ui.limit);
+  const total = rows.reduce((s,a)=>s+a.cost,0);
+  return `
+  <div class="spread"><div><h1>ทะเบียนสินทรัพย์</h1><p class="sub">${rows.length} ชิ้น · ราคาทุน ${fmt(total)} บาท · คลิกการ์ดเพื่อดูรายละเอียด รูป และป้าย QR</p></div>
+    <div class="row"><div class="seg" role="group" aria-label="มุมมอง"><button data-mode="card" aria-pressed="${ui.mode==='card'}">การ์ด</button><button data-mode="table" aria-pressed="${ui.mode==='table'}">ตาราง</button></div>
+    <button class="btn" data-act="print-filtered" ${rows.length?'':'disabled'}>พิมพ์ป้าย ${rows.reduce((x,a)=>x+pieces(a).length,0).toLocaleString('th-TH')} ดวง</button><button class="btn pri" data-act="new">+ เพิ่มสินทรัพย์</button></div></div>
+  <div class="chips">
+    <button class="chip" data-fcat="" aria-pressed="${!ui.fcat}"><span class="ic" style="background:var(--sunk)">${svg('box')}</span>ทั้งหมด <b>${state.assets.length}</b></button>
+    ${state.cats.filter(c=>counts[c.code]).map(c=>`<button class="chip" data-fcat="${c.code}" aria-pressed="${ui.fcat===c.code}"><span class="ic" style="${tint(c.code)}">${svg(CAT_ICON[c.code])}</span>${esc(c.name)} <b>${counts[c.code]}</b></button>`).join('')}
+  </div>
+  <div class="row">
+    <label class="f" style="flex:2 1 220px">ค้นหา<input id="q" type="search" placeholder="รหัส ชื่อ ผู้ขาย เลขที่เอกสาร" value="${esc(ui.q)}"></label>
+    <label class="f" style="flex:1 1 180px">สาขา<select id="fbranch"><option value="">ทุกสาขา</option>${state.branches.map(b=>`<option ${ui.fbranch===b?'selected':''}>${esc(b)}</option>`).join('')}</select></label>
+    <label class="f" style="flex:1 1 150px">สถานะ<select id="fstatus"><option value="">ทุกสถานะ</option>${statuses.map(s=>`<option ${ui.fstatus===s?'selected':''}>${s}</option>`).join('')}</select></label>
+  </div>
+  ${!rows.length ? `<section class="card note" style="text-align:center;padding:40px">ไม่พบสินทรัพย์ตามเงื่อนไข ลองล้างตัวกรองหรือคำค้นหา</section>` :
+   ui.mode === 'card' ? `<div class="cards">${shown.map(cardHtml).join('')}</div>` :
+  `<section class="card" style="padding:4px 8px"><div class="scroll"><table>
+    <thead><tr><th></th><th>รหัสทรัพย์สิน</th><th>ชื่อสินทรัพย์</th><th>สาขา</th><th>วันที่ได้มา</th><th class="n">ราคาทุน</th><th class="n">มูลค่าสุทธิวันนี้</th><th>สถานะ</th></tr></thead>
+    <tbody>${shown.map(a => { const [s,cls] = statusOf(a); return `<tr class="click" data-open="${a.id}" tabindex="0">
+      <td>${thumbHtml(a)}</td><td class="code">${esc(codeText(a))}</td>
+      <td>${esc(a.name)}${qtyText(a)?` <span class="note">× ${esc(qtyText(a))}</span>`:''}${lowVal(a)?'<span class="ex" style="color:var(--warn)">ต่ำกว่าเกณฑ์</span>':''}<div class="note">${esc(cat(a.cat).name)}</div></td>
+      <td>${esc(a.branch)}</td><td style="white-space:nowrap">${thDate(a.acqDate)}</td>
+      <td class="n">${fmt(a.cost)}</td><td class="n">${fmt(nbv(a,today))}</td><td><span class="pill ${cls}">${s}</span></td></tr>`; }).join('')}</tbody>
+  </table></div></section>`}
+  ${rows.length > shown.length ? `<div class="more"><button class="btn" data-act="more">แสดงเพิ่มอีก ${Math.min(48, rows.length-shown.length)} จาก ${rows.length-shown.length} ชิ้น</button></div>` : ''}`;
+}
+
+function vDep(){
+  const ym = ui.month, endD = monthEnd(ym), prevD = prevMonthEnd(ym);
+  const lines = state.assets.map(a => ({a, dep: r2(accDep(a,endD) - accDep(a,prevD)), acc: accDep(a,endD)})).filter(x => x.dep > 0)
+    .sort((x,y)=>x.a.code.localeCompare(y.a.code));
+  const total = lines.reduce((s,x)=>s+x.dep,0);
+  const byCat = state.cats.map(c => ({c, dep: r2(lines.filter(x=>x.a.cat===c.code).reduce((s,x)=>s+x.dep,0))})).filter(x=>x.dep>0);
+  const closed = state.closed.includes(ym);
+  const word = c => c.code === 'SW' ? 'ค่าตัดจำหน่าย' : 'ค่าเสื่อมราคา';
+  return `
+  <div class="spread"><div><h1>ค่าเสื่อมราคาประจำเดือน</h1><p class="sub">${thMonth(ym)} · ${lines.length} รายการ · รวม ${fmt(total)} บาท ${closed?'<span class="pill p-active">ปิดงวดแล้ว</span>':''}</p></div>
+    <div class="row"><label class="f" style="width:180px">งวด<input type="month" id="month" value="${ym}"></label>
+    <button class="btn ${closed?'':'pri'}" data-act="close">${closed?'เปิดงวดอีกครั้ง':'ปิดงวด'}</button></div></div>
+  <div class="split">
+    <section class="card" style="padding:4px 8px"><div class="scroll"><table>
+      <thead><tr><th>รหัสทรัพย์สิน</th><th>ชื่อ</th><th class="n">ค่าเสื่อมเดือนนี้</th><th class="n">สะสมสิ้นเดือน</th><th class="n">มูลค่าสุทธิ</th></tr></thead>
+      <tbody>${lines.map(x=>`<tr class="click" data-open="${x.a.id}"><td class="code">${esc(x.a.code)}</td><td>${esc(x.a.name)}</td><td class="n">${fmt(x.dep)}</td><td class="n">${fmt(x.acc)}</td><td class="n">${fmt(x.a.cost-x.acc)}</td></tr>`).join('') || '<tr><td colspan="5" class="note" style="padding:24px;text-align:center">ไม่มีค่าเสื่อมในงวดนี้</td></tr>'}</tbody>
+      <tfoot><tr><td colspan="2">รวม</td><td class="n">${fmt(total)}</td><td></td><td></td></tr></tfoot>
+    </table></div></section>
+    <section class="card"><h2>รายการบันทึกบัญชี (JV) ที่จะส่งเข้าระบบบัญชี</h2>
+      <p class="note" style="margin:0 0 10px">ลงวันที่ ${thDate(endD)} · แยกตามหมวด</p>
+      <div class="scroll"><table class="jv"><thead><tr><th></th><th>บัญชี</th><th class="n">เดบิต</th><th class="n">เครดิต</th></tr></thead><tbody>
+      ${byCat.map(x=>`<tr><td>Dr</td><td>${word(x.c)} – ${esc(x.c.name)}</td><td class="n">${fmt(x.dep)}</td><td></td></tr>
+        <tr class="cr"><td>Cr</td><td>${word(x.c)}สะสม – ${esc(x.c.name)}</td><td></td><td class="n">${fmt(x.dep)}</td></tr>`).join('')}
+      </tbody><tfoot><tr><td></td><td>รวม</td><td class="n">${fmt(total)}</td><td class="n">${fmt(total)}</td></tr></tfoot></table></div>
+      <p class="note" style="margin:12px 0 0">รหัสบัญชีค่าเสื่อมและค่าเสื่อมสะสมของแต่ละหมวดจะผูกในหน้าตั้งค่าเมื่อทำระบบจริง แล้วส่งเข้า TRCloud เป็น JV</p>
+    </section>
+  </div>`;
+}
+
+function vSettings(){
+  return `
+  <div><h1>ตั้งค่า</h1><p class="sub">หมวดและรหัสบัญชีตามกลุ่มทรัพย์สินในงบการเงิน อายุการใช้งานเป็นค่าเริ่มต้นเมื่อเพิ่มสินทรัพย์ใหม่</p></div>
+  <section class="card" style="padding:4px 8px"><div class="scroll"><table>
+    <thead><tr><th>หมวด</th><th>รหัสบัญชี</th><th>ชื่อบัญชี</th><th>คิดค่าเสื่อม</th><th class="n">อายุใช้งาน (ปี)</th><th class="n">ตัวอย่างรหัสถัดไป</th></tr></thead>
+    <tbody>${state.cats.map((c,i)=>`<tr><td class="code">${c.code}</td><td class="code" style="font-weight:500">${c.acc}</td><td>${esc(c.name)}</td><td>${c.supply?'ไม่คิด · ตัดจ่ายตามผลนับสิ้นปี':c.dep===false?'ไม่คิด':'เส้นตรง'}</td>
+      <td class="n">${c.dep===false?'–':`<input type="number" min="1" max="50" step="1" style="width:80px;text-align:right" id="life-${c.code}" data-life="${i}" value="${c.life}">`}</td>
+      <td class="n code">${nextCode(c.code, today)}</td></tr>`).join('')}</tbody>
+  </table></div></section>
+  <section class="card"><div class="grid2">
+    <label class="f">มูลค่าขั้นต่ำที่จะลงเป็นสินทรัพย์ (บาท)<input type="number" id="threshold" min="0" step="100" value="${state.threshold}"></label>
+    <div class="note" style="align-self:end">ต่ำกว่าเกณฑ์นี้ระบบจะเตือนให้บันทึกเป็นวัสดุสิ้นเปลือง (1306000) แทน</div>
+  </div></section>
+  <section class="card"><h2>รูปแบบรหัสทรัพย์สิน</h2>
+    <p style="margin:0">หมวด + ปีปี + เดือนเดือน / ลำดับ 4 หลัก เช่น <span class="code">OF2601/0001</span> ลำดับเริ่ม 0001 ใหม่ทุกเดือนต่อหมวด ใช้ปีและเดือนจากวันที่ได้มา รหัสออกอัตโนมัติและแก้ไม่ได้หลังบันทึก</p>
+  </section>
+  <section class="card"><h2>เครื่องพิมพ์ป้าย NIIMBOT</h2>
+    <div class="grid2">
+      <label class="f">ขนาดป้าย<select id="l-size">
+        <option value="50x30" ${L().size==='50x30'?'selected':''}>50 × 30 มม. แบบเต็ม</option>
+        <option value="50x15x2" ${L().size==='50x15x2'?'selected':''}>50 × 15 มม. แบบย่อ (2 ดวงต่อแผ่น)</option></select></label>
+      <label class="f">ความเข้ม (1–5)<input type="number" id="l-density" min="1" max="5" value="${L().density}"></label>
+      <label class="f">ชนิดกระดาษ<select id="l-type">
+        <option value="1" ${L().type==1?'selected':''}>สติกเกอร์มีช่องว่างระหว่างดวง</option>
+        <option value="2" ${L().type==2?'selected':''}>มีแถบดำ</option>
+        <option value="5" ${L().type==5?'selected':''}>กระดาษใส</option></select></label>
+      <label class="f">โหมดคำสั่งพิมพ์<select id="l-task"><option value="auto">อัตโนมัติ (แนะนำ)</option>${['B1','D110','B21_V1','D110M_V4','D11_V1'].map(t=>`<option ${L().task===t?'selected':''}>${t}</option>`).join('')}</select></label>
+    </div>
+    <p class="note" style="margin:10px 0 0">กดพิมพ์ป้ายแล้วระบบจะเปิดหน้าพิมพ์ในแท็บใหม่ ให้ใช้ Chrome หรือ Edge บนคอมพิวเตอร์หรือ Android เปิด Bluetooth แล้วกดเชื่อมต่อเครื่องที่หน้านั้น ถ้าเครื่องไม่ตอบสนอง ลองเปลี่ยนโหมดคำสั่งพิมพ์เป็น B1 หรือ D110</p>
+    <div class="prrow"><button class="btn" data-act="print-test">พิมพ์ป้ายทดสอบ</button></div>
+  </section>
+  <section class="card"><h2>ข้อมูล</h2>
+    <p class="note" style="margin:0 0 10px">ข้อมูลเก็บใน Google Sheet (ชีต Assets, Queue, Categories, Settings, Log) รูปเก็บในโฟลเดอร์ Drive "รูปทรัพย์สิน" ทุกคนที่มีสิทธิ์แก้ไขชีตเห็นข้อมูลชุดเดียวกัน นำเข้าไฟล์ข้อมูลจาก TRCloud ครั้งถัดไป ระบบจะเพิ่มเฉพาะเอกสารใหม่เข้าคิวรอขึ้นทะเบียน</p>
+    <div class="row"><label class="btn filebtn">นำเข้าไฟล์ข้อมูลจาก TRCloud<input type="file" accept=".json,application/json" id="importfile"></label>
+      <button class="btn" data-act="backup" ${state.assets.length?'':'disabled'}>ดาวน์โหลดไฟล์สำรอง</button>
+</div>
+  </section>`;
+}
+
+/* ---------- drawer ---------- */
+let drawer = null; // {mode, id, pending:[]}
+function openDrawer(mode, id){ drawer = {mode, id, pending:[]}; renderDrawer(); }
+function closeDrawer(){ drawer = null; $('#layer').innerHTML = ''; }
+function renderDrawer(){
+  if (!drawer) return;
+  const a = state.assets.find(x => x.id === drawer.id);
+  let head = '', body = '', foot = '';
+  if (drawer.mode === 'detail'){ [head, body, foot] = dDetail(a); }
+  else if (drawer.mode === 'form'){ [head, body, foot] = dForm(a); }
+  else if (drawer.mode === 'transfer'){ [head, body, foot] = dTransfer(a); }
+  else if (drawer.mode === 'dispose'){ [head, body, foot] = dDispose(a); }
+  else if (drawer.mode === 'capitalize'){ [head, body, foot] = dCapitalize(a); }
+  else if (drawer.mode === 'pnew'){ [head, body, foot] = dPendingNew(); }
+  $('#layer').innerHTML = `<div class="scrim" data-act="close-drawer"></div><aside class="drawer" role="dialog" aria-modal="true">
+    <div class="dhead"><div style="min-width:0">${head}</div><button class="btn sm" data-act="close-drawer" aria-label="ปิด">ปิด</button></div>
+    <div class="dbody">${body}</div>${foot?`<div class="dfoot">${foot}</div>`:''}</aside>`;
+  if (drawer.mode === 'detail') drawPreview(a);
+}
+function drawQR(a){
+  const box = $('#qrbox'); if (!box) return;
+  try { const q = qrcode(0, 'M'); q.addData(a.code); q.make(); box.innerHTML = q.createSvgTag({cellSize:3, margin:0, scalable:true}); }
+  catch(e){ box.innerHTML = '<div class="note">QR</div>'; }
+}
+
+function dDetail(a){
+  const [s, cls] = statusOf(a);
+  const main = photoOf(a);
+  const sch = schedule(a);
+  const accNow = accDep(a, today);
+  const annual = depreciable(a) ? r2((a.cost - a.salvage)/a.life) : 0;
+  const head = `<div class="bigcode">${esc(codeText(a))}</div><div style="font-weight:500">${esc(a.name)}</div>
+    <div style="margin-top:6px"><span class="pill ${cls}">${s}</span>${a.src==='trcloud'?'<span class="ex">นำเข้าจาก TRCloud</span>':''}</div>`;
+  const body = `
+  <section class="gallery">
+    ${main ? `<img class="mainimg" src="${main}" alt="รูป ${esc(a.name)}">` : `${artHtml(a,'heroart')}<div class="note">ภาพประกอบตามประเภท · กด "+ เพิ่มรูป" เพื่อแนบรูปถ่ายจริง ป้ายรหัส หรือใบกำกับภาษี</div>`}
+    <div class="thumbs">${a.photos.map(p=>`<div class="tw ${p.primary?'primary':''}"><img src="${p.src}" alt="" data-primary="${p.id}" title="ตั้งเป็นรูปหลัก"><button class="x" data-delphoto="${p.id}" aria-label="ลบรูป">×</button></div>`).join('')}
+      <label class="btn sm upl">+ เพิ่มรูป<input type="file" accept="image/*" multiple id="addphotos"></label></div>
+    ${a.photos.length>1?'<div class="note">คลิกรูปเล็กเพื่อตั้งเป็นรูปหลัก</div>':''}
+  </section>
+  <section><h3>ข้อมูลสินทรัพย์</h3><dl class="facts">
+    <div><dt>หมวด</dt><dd>${a.cat} · ${esc(cat(a.cat).name)} (${cat(a.cat).acc})</dd></div>
+    <div><dt>สาขา / ที่ตั้ง</dt><dd>${esc(a.branch)}</dd></div>
+    <div><dt>ผู้ดูแล</dt><dd>${esc(a.custodian)||'–'}</dd></div>
+    <div><dt>ผู้ขาย</dt><dd>${esc(a.vendor)||'–'}</dd></div>
+    <div><dt>เลขที่ใบกำกับภาษี</dt><dd>${esc(a.invoice)||'–'}</dd></div>
+    <div><dt>วันที่ได้มา / พร้อมใช้</dt><dd>${thDate(a.acqDate)}</dd></div>
+    <div><dt>ราคาทุน</dt><dd>${fmt(a.cost)} บาท</dd></div>
+    ${qtyText(a)?`<div><dt>จำนวน</dt><dd>${esc(qtyText(a))} · ราคาต่อหน่วย ${fmt(unitCost(a))} บาท</dd></div>`:''}
+    <div><dt>มูลค่าซาก</dt><dd>${fmt(a.salvage)} บาท</dd></div>
+    <div><dt>อายุการใช้งาน</dt><dd>${depreciable(a)?a.life+' ปี · '+(r2(100/a.life))+'% ต่อปี':'ไม่คิดค่าเสื่อม'}</dd></div>
+    ${a.refs?`<div><dt>เอกสารใน TRCloud</dt><dd class="code" style="font-weight:500">${a.refs.map(esc).join(', ')}${a.po?' · '+esc(a.po):''}</dd></div>`:''}
+    ${a.legacy?`<div><dt>รหัสเดิม</dt><dd>${esc(a.legacy)}</dd></div>`:''}
+    ${a.transfer?`<div><dt>โอนไปเป็น</dt><dd class="code">${esc(a.transfer.toCode)}</dd></div>`:''}
+    ${a.fromCode?`<div><dt>โอนมาจาก</dt><dd class="code">${esc(a.fromCode)}</dd></div>`:''}
+    ${a.note?`<div><dt>หมายเหตุ</dt><dd>${esc(a.note)}</dd></div>`:''}
+  </dl></section>
+  ${depreciable(a)?`<section><h3>ค่าเสื่อมราคา ณ วันนี้</h3><dl class="facts">
+    <div><dt>ค่าเสื่อมต่อปี</dt><dd>${fmt(annual)}</dd></div>
+    <div><dt>ค่าเสื่อมสะสม</dt><dd>${fmt(accNow)}</dd></div>
+    <div><dt>มูลค่าสุทธิ</dt><dd>${fmt(nbv(a,today))}</dd></div>
+    <div><dt>ค่าเสื่อมครบวันที่</dt><dd>${thDate(fullyDate(a))}</dd></div>
+    ${a.disposal?`<div><dt>กำไร(ขาดทุน)จากการจำหน่าย</dt><dd>${fmt(a.disposal.proceeds - r2(a.cost - accDep(a,a.disposal.date)))}</dd></div>`:''}
+  </dl></section>
+  <section><h3>ตารางค่าเสื่อมรายปี (นับตามวัน ÷ 365)</h3><div class="scroll card" style="padding:4px 8px"><table>
+    <thead><tr><th>ปี</th><th class="n">ค่าเสื่อม</th><th class="n">สะสม</th><th class="n">มูลค่าสุทธิ</th></tr></thead>
+    <tbody>${sch.map(r=>`<tr><td>${r.y} (พ.ศ. ${r.y+543})</td><td class="n">${fmt(r.dep)}</td><td class="n">${fmt(r.acc)}</td><td class="n">${fmt(r.nbv)}</td></tr>`).join('')}</tbody>
+  </table></div></section>`:''}
+  <section><h3>ป้ายติดสินทรัพย์</h3>
+    <canvas class="lblprev" id="lblprev" width="400" height="240" aria-label="ตัวอย่างป้าย ${esc(codeText(a))}"></canvas>
+    <div class="prrow">${a.docNo ? `<span class="note" style="align-self:center">${pieces(a).length} ดวง รหัส ${esc(codeText(a))}</span>` : `<label class="f">จำนวนดวง<input type="number" id="copies" min="1" max="200" value="${Math.min(200, +a.qty || 1)}"></label>`}<button class="btn pri" data-act="print-one">พิมพ์ป้าย</button></div>
+    <p class="note" style="margin:8px 0 0">ภาพนี้คือสิ่งที่จะพิมพ์จริง ขนาด ${labelSizeText()} ตั้งขนาดได้ในหน้าตั้งค่า</p></section>
+  ${isSup(a)?`<section><h3>ตรวจนับวัสดุสิ้นเปลือง</h3>
+    <p class="note" style="margin:0 0 8px">ไม่คิดค่าเสื่อม ตัดเป็นค่าใช้จ่ายตามผลตรวจนับสิ้นปี ${(a.counts||[]).length?`· นับล่าสุด ${thDate(a.counts[a.counts.length-1].date)} เหลือ ${a.counts[a.counts.length-1].qty.toLocaleString('th-TH')} ${esc(a.unit||'ชิ้น')} (ใช้ไป ${((+a.qty||1)-a.counts[a.counts.length-1].qty).toLocaleString('th-TH')} มูลค่า ${fmt(((+a.qty||1)-a.counts[a.counts.length-1].qty)*unitCost(a))} บาท)`:''}</p>
+    <div class="prrow"><label class="f">คงเหลือที่นับได้<input type="number" id="cnt-qty" min="0" step="1" value="${(a.counts||[]).length?a.counts[a.counts.length-1].qty:(+a.qty||1)}"></label><label class="f" style="width:160px">วันที่นับ<input type="date" id="cnt-date" value="${today}"></label><button class="btn" data-act="count">บันทึกผลนับ</button></div></section>`:''}
+  <section><h3>ประวัติ</h3><ul class="hist">${a.history.map(h=>`<li><span>${thDate(h.date)}</span><span>${esc(h.text)}</span></li>`).join('')}</ul></section>`;
+  const active = a.status === 'active', cip = a.status === 'cip';
+  const foot = `${active||cip?`<button class="btn" data-act="edit">แก้ไข</button><button class="btn" data-act="transfer">โอนย้าย</button>`:''}
+    ${cip?`<button class="btn pri" data-act="capitalize">โอนเข้าสินทรัพย์</button>`:''}
+    ${active?`<button class="btn danger" data-act="dispose">จำหน่าย / ตัดบัญชี</button>`:''}`;
+  return [head, body, foot];
+}
+
+function dForm(a){
+  const isNew = !a;
+  const v = a || (drawer.from ? fromPending(drawer.from) : null) || {cat:'KT', name:'', branch:state.branches[0], custodian:'', vendor:'', invoice:'', acqDate:today, cost:'', salvage:1, life:cat('KT').life, legacy:'', note:''};
+  const head = `<div class="bigcode" id="codepreview">${isNew ? nextCode(v.cat, v.acqDate) : esc(v.code)}</div>${drawer.from?`<div class="note">ขึ้นทะเบียนจากรายการรอ · ${esc((PQ().find(p=>p.pid===drawer.from)||{refs:[]}).refs.join(', '))}</div>`:''}<div class="note">${isNew?'รหัสที่จะได้ ออกอัตโนมัติจากหมวดและวันที่ได้มา':'รหัสแก้ไขไม่ได้หลังบันทึก'}</div>`;
+  const body = `<form id="assetform" class="grid2" novalidate>
+    <label class="f">หมวดสินทรัพย์<select id="f-cat" ${isNew?'':'disabled'}>${state.cats.map(c=>`<option value="${c.code}" ${v.cat===c.code?'selected':''}>${c.code} · ${esc(c.name)}</option>`).join('')}</select></label>
+    <label class="f">วันที่ได้มา / พร้อมใช้<input type="date" id="f-date" value="${v.acqDate}" required></label>
+    <label class="f" style="grid-column:1/-1">ชื่อสินทรัพย์<input id="f-name" value="${esc(v.name)}" placeholder="เช่น ตู้แช่เย็น 2 ประตู สเตนเลส" required></label>
+    <label class="f">สาขา / ที่ตั้ง<input id="f-branch" list="branchlist" value="${esc(v.branch||'')}" placeholder="เช่น สำนักงานใหญ่"><datalist id="branchlist">${state.branches.map(b=>`<option value="${esc(b)}">`).join('')}</datalist></label>
+    <label class="f">ผู้ดูแล<input id="f-cust" value="${esc(v.custodian)}" placeholder="ชื่อหรือตำแหน่ง"></label>
+    <label class="f">ผู้ขาย<input id="f-vendor" value="${esc(v.vendor)}"></label>
+    <label class="f">เลขที่ใบกำกับภาษี<input id="f-inv" value="${esc(v.invoice)}"></label>
+    <label class="f" id="f-docwrap" ${cat(v.cat).supply&&isNew?'':'hidden'}>เลขที่เอกสาร AP / EXP (ใช้ตั้งรหัส)<input id="f-doc" value="${esc(v.docNo||'')}" placeholder="เช่น AP2601000001" style="text-transform:uppercase"></label>
+    <label class="f">ราคาทุน (บาท ไม่รวม VAT)<input type="number" id="f-cost" min="0" step="0.01" value="${v.cost}" required></label>
+    <label class="f">มูลค่าซาก (บาท)<input type="number" id="f-salv" min="0" step="0.01" value="${v.salvage}"></label>
+    <label class="f">จำนวน<input type="number" id="f-qty" min="1" step="1" value="${v.qty||1}"></label>
+    <label class="f">หน่วย<input id="f-unit" list="unitlist" value="${esc(v.unit||'ชิ้น')}"><datalist id="unitlist">${['ชิ้น','ตัว','เครื่อง','ชุด','ใบ','อัน','กล่อง','แพ็ค'].map(u=>`<option value="${u}">`).join('')}</datalist></label>
+    <label class="f">อายุการใช้งาน (ปี)<input type="number" id="f-life" min="0" max="50" step="1" value="${v.life}"></label>
+    <label class="f">รหัสเดิม (ถ้ามี)<input id="f-legacy" value="${esc(v.legacy)}"></label>
+    <label class="f" style="grid-column:1/-1">หมายเหตุ<textarea id="f-note" rows="2">${esc(v.note)}</textarea></label>
+    <div id="f-warn" style="grid-column:1/-1"></div>
+    <div style="grid-column:1/-1;display:grid;gap:8px"><span class="note">รูปภาพ</span>
+      <div class="thumbs" id="pendthumbs">${drawer.pending.map(p=>`<div class="tw"><img src="${p.src}" alt=""></div>`).join('')}
+      <label class="btn sm upl">+ เลือกรูป / ถ่ายรูป<input type="file" accept="image/*" multiple id="formphotos"></label></div></div>
+  </form>`;
+  const foot = `<button class="btn" data-act="${isNew?'close-drawer':'back'}">ยกเลิก</button><button class="btn pri" data-act="save">${isNew?'บันทึกและออกรหัส':'บันทึกการแก้ไข'}</button>`;
+  return [head, body, foot];
+}
+function dTransfer(a){
+  return [`<div class="bigcode">${esc(codeText(a))}</div><div>โอนย้ายสาขา / ผู้ดูแล</div>`,
+  `<div class="grid2">
+    <label class="f">สาขาปลายทาง<select id="t-branch">${state.branches.map(b=>`<option ${a.branch===b?'selected':''}>${esc(b)}</option>`).join('')}</select></label>
+    <label class="f">ผู้ดูแลใหม่<input id="t-cust" value="${esc(a.custodian)}"></label>
+    <label class="f">วันที่โอน<input type="date" id="t-date" value="${today}"></label>
+    <label class="f">เหตุผล<input id="t-note" placeholder="เช่น ย้ายไปเปิดสาขาใหม่"></label></div>
+   <p class="note">รหัสทรัพย์สินไม่เปลี่ยน ป้ายเดิมใช้ต่อได้</p>`,
+  `<button class="btn" data-act="back">ยกเลิก</button><button class="btn pri" data-act="do-transfer">บันทึกการโอน</button>`];
+}
+function dDispose(a){
+  return [`<div class="bigcode">${esc(codeText(a))}</div><div>จำหน่าย / ตัดบัญชี</div>`,
+  `<div class="grid2">
+    <label class="f">วันที่จำหน่าย<input type="date" id="x-date" value="${today}"></label>
+    <label class="f">วิธี<select id="x-kind"><option>ขาย</option><option>ตัดชำรุด / ทิ้ง</option><option>สูญหาย</option><option>บริจาค</option></select></label>
+    <label class="f">เงินที่ได้รับ (บาท ไม่รวม VAT)<input type="number" id="x-proc" min="0" step="0.01" value="0"></label>
+    <label class="f">อ้างอิงเอกสาร / ผู้อนุมัติ<input id="x-ref"></label></div>
+   <div class="card" id="x-calc"></div>`,
+  `<button class="btn" data-act="back">ยกเลิก</button><button class="btn pri" data-act="do-dispose">ยืนยันการจำหน่าย</button>`];
+}
+function dCapitalize(a){
+  return [`<div class="bigcode">${esc(codeText(a))}</div><div>โอนงานระหว่างก่อสร้างเข้าสินทรัพย์</div>`,
+  `<div class="grid2">
+    <label class="f">หมวดปลายทาง<select id="c-cat">${state.cats.filter(c=>c.dep!==false).map(c=>`<option value="${c.code}">${c.code} · ${esc(c.name)}</option>`).join('')}</select></label>
+    <label class="f">วันที่พร้อมใช้งาน<input type="date" id="c-date" value="${today}"></label>
+    <label class="f">อายุการใช้งาน (ปี)<input type="number" id="c-life" min="1" step="1" value="${cat('BD').life}"></label>
+    <label class="f">รหัสใหม่<input id="c-code" readonly></label></div>
+   <p class="note">ราคาทุน ${fmt(a.cost)} บาทโอนทั้งหมด รหัส CP เดิมจะปิดและลิงก์ไปที่รหัสใหม่</p>`,
+  `<button class="btn" data-act="back">ยกเลิก</button><button class="btn pri" data-act="do-capitalize">โอนเข้าสินทรัพย์</button>`];
+}
+
+/* ---------- photos ---------- */
+function readPhoto(file){
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => { const img = new Image(); img.onload = () => {
+      const max = 900, k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width*k); c.height = Math.round(img.height*k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      res({id:'p'+Date.now()+Math.random().toString(36).slice(2,6), src:c.toDataURL('image/jpeg', .72), primary:false});
+    }; img.onerror = rej; img.src = fr.result; };
+    fr.onerror = rej; fr.readAsDataURL(file);
+  });
+}
+async function readPhotos(files){ const out = []; for (const f of files){ try{ out.push(await readPhoto(f)); }catch(e){ toast('อ่านรูปไม่ได้: ' + f.name); } } return out; }
+
+
+/* ---------- label printing (NIIMBOT over Web Bluetooth) ---------- */
+const L = () => (state.label = Object.assign({size:'50x30', density:3, type:1, task:'auto'}, state.label || {}));
+const labelSizeText = () => L().size === '50x30' ? '50 × 30 มม.' : '50 × 15 มม. 2 ดวงต่อแผ่น';
+const PX = 8; // 203 dpi ≈ 8 dots per mm
+const PR = {client:null, busy:false, name:''};
+const F_TH = '"IBM Plex Sans Thai", Tahoma, sans-serif', F_MONO = '"IBM Plex Mono", "Courier New", monospace';
+
+async function fontsReady(list){
+  const txt = list.map(a => [a.code, a.name, a.branch].join(' ')).join(' ') + ' ทรัพย์สินของบริษัท';
+  try { await Promise.all(['400 18px ' + F_TH, '600 18px ' + F_TH, '600 24px ' + F_MONO].map(f => document.fonts.load(f, txt))); } catch(e) {}
+}
+function fitText(ctx, text, maxW, size, weight, family, min){
+  let s = size; ctx.font = `${weight} ${s}px ${family}`;
+  while (s > min && ctx.measureText(text).width > maxW){ s--; ctx.font = `${weight} ${s}px ${family}`; }
+  return s;
+}
+function ellipsize(ctx, text, maxW){
+  if (ctx.measureText(text).width <= maxW) return text;
+  const parts = Array.from(text); while (parts.length && ctx.measureText(parts.join('') + '…').width > maxW) parts.pop();
+  return parts.join('') + '…';
+}
+function wrapLines(ctx, text, maxW, maxLines){
+  const seg = (typeof Intl !== 'undefined' && Intl.Segmenter) ? Array.from(new Intl.Segmenter('th', {granularity:'word'}).segment(text), x => x.segment) : text.split(/(\s+)/);
+  const lines = []; let line = '';
+  for (let i = 0; i < seg.length; i++){
+    const tryL = line + seg[i];
+    if (ctx.measureText(tryL).width <= maxW || !line){ line = tryL; continue; }
+    lines.push(line.trim()); line = seg[i].trimStart();
+    if (lines.length === maxLines - 1){ line = seg.slice(i).join('').trim(); break; }
+  }
+  if (line) lines.push(line.trim());
+  if (lines.length > maxLines) lines.length = maxLines;
+  const last = lines.length - 1; if (last >= 0) lines[last] = ellipsize(ctx, lines[last], maxW);
+  return lines;
+}
+function drawQRAt(ctx, text, x, y, size){
+  const q = qrcode(0, 'M'); q.addData(text); q.make();
+  const n = q.getModuleCount(), cell = Math.floor(size / n), off = Math.floor((size - cell * n) / 2);
+  ctx.fillStyle = '#000';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) ctx.fillRect(x + off + c*cell, y + off + r*cell, cell, cell);
+}
+function roundRect(ctx, x, y, w, h, r){ ctx.beginPath(); ctx.moveTo(x+r, y); ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r); ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r); ctx.closePath(); }
+
+/* Full label 50×30 mm: border, QR left, four text lines right (same design as the sample sticker). */
+function drawFull(ctx, a, ox, oy){
+  const W = 50*PX, H = 30*PX;
+  ctx.lineWidth = 3; ctx.strokeStyle = '#000'; roundRect(ctx, ox+14+1.5, oy+14+1.5, W-28-3, H-28-3, 14); ctx.stroke();
+  const q = 140, qx = ox + 14 + 3 + 12, qy = oy + (H - q)/2;
+  drawQRAt(ctx, a.code, qx, qy, q);
+  const tx = qx + q + 12, tw = ox + W - 14 - 3 - 10 - tx;
+  ctx.fillStyle = '#000'; ctx.textBaseline = 'alphabetic';
+  ctx.font = `400 17px ${F_TH}`; const small = ellipsize(ctx, 'ทรัพย์สินของบริษัท', tw);
+  const cs = fitText(ctx, a.code, tw, 25, 600, F_MONO, 16);
+  ctx.font = `400 19px ${F_TH}`; const nm = wrapLines(ctx, a.name || '', tw, 2);
+  ctx.font = `600 18px ${F_TH}`; const br = ellipsize(ctx, a.branch || '', tw);
+  const lh = [24, cs + 8, ...nm.map(() => 24), 24], total = lh.reduce((x,y)=>x+y, 0) + 6;
+  let y = oy + (H - total)/2;
+  ctx.font = `400 17px ${F_TH}`; y += lh[0]; ctx.fillText(small, tx, y - 6);
+  ctx.font = `600 ${cs}px ${F_MONO}`; y += lh[1]; ctx.fillText(a.code, tx, y - 7);
+  ctx.font = `400 19px ${F_TH}`; nm.forEach(l => { y += 24; ctx.fillText(l, tx, y - 5); });
+  ctx.font = `600 18px ${F_TH}`; y += 24 + 6; ctx.fillText(br, tx, y - 5);
+}
+/* Compact label 50×15 mm: QR left, code / name / branch right. */
+function drawCompact(ctx, a, ox, oy){
+  const W = 50*PX, H = 15*PX, q = 96, qx = ox + 14, qy = oy + (H - q)/2;
+  drawQRAt(ctx, a.code, qx, qy, q);
+  const tx = qx + q + 12, tw = ox + W - 12 - tx;
+  ctx.fillStyle = '#000'; ctx.textBaseline = 'alphabetic';
+  const cs = fitText(ctx, a.code, tw, 26, 600, F_MONO, 16);
+  ctx.fillText(a.code, tx, oy + 38);
+  ctx.font = `400 18px ${F_TH}`; ctx.fillText(ellipsize(ctx, a.name || '', tw), tx, oy + 68);
+  ctx.font = `600 16px ${F_TH}`; ctx.fillText(ellipsize(ctx, a.branch || '', tw), tx, oy + 96);
+}
+/* One printed page = 50×30 mm. Full: one asset. Compact: two assets stacked. */
+function pageCanvas(items){
+  const c = document.createElement('canvas'); c.width = 50*PX; c.height = 30*PX;
+  const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+  if (L().size === '50x30') drawFull(ctx, items[0], 0, 0);
+  else items.forEach((a, i) => a && drawCompact(ctx, a, 0, i * 15*PX));
+  // thermal printers have no grey: threshold to pure black / white
+  const img = ctx.getImageData(0, 0, c.width, c.height), d = img.data;
+  for (let i = 0; i < d.length; i += 4){ const v = (d[i]*299 + d[i+1]*587 + d[i+2]*114) / 1000 < 150 ? 0 : 255; d[i] = d[i+1] = d[i+2] = v; d[i+3] = 255; }
+  ctx.putImageData(img, 0, 0);
+  return c;
+}
+function pagesFor(list){
+  if (L().size === '50x30') return list.map(a => [a]);
+  const out = []; for (let i = 0; i < list.length; i += 2) out.push([list[i], list[i+1]]); return out;
+}
+async function drawPreview(a){
+  const cv = $('#lblprev'); if (!cv) return;
+  await fontsReady([a]);
+  const pc = pieces(a); const src = pageCanvas(L().size === '50x30' ? [pc[0]] : [pc[0], pc[1] || pc[0]]);
+  const ctx = cv.getContext('2d'); ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(src, 0, 0);
+}
+
+function updPr(){
+  const b = $('#prbtn'); if (!b) return;
+  const on = !!(PR.client && PR.client.isConnected());
+  b.dataset.state = PR.busy ? 'busy' : on ? 'on' : 'off';
+  b.querySelector('span').textContent = PR.busy ? 'กำลังพิมพ์…' : on ? (PR.name || 'เชื่อมต่อแล้ว') : 'เครื่องพิมพ์ป้าย';
+}
+function btSupportMsg(){
+  if (!window.isSecureContext) return 'ต้องเปิดเว็บผ่าน https จึงจะใช้ Bluetooth ได้';
+  if (!navigator.bluetooth) return 'เบราว์เซอร์นี้ใช้ Bluetooth ไม่ได้ ให้เปิดด้วย Chrome หรือ Edge บนคอมพิวเตอร์หรือ Android (iPhone/iPad ใช้ไม่ได้)';
+  if (!window.niimbluelib) return 'โหลดตัวเชื่อมต่อเครื่องพิมพ์ไม่สำเร็จ ลองรีเฟรชหน้า';
+  return '';
+}
+async function connectPrinter(){
+  const msg = btSupportMsg(); if (msg){ toast(msg); return false; }
+  const client = new niimbluelib.NiimbotBluetoothClient();
+  client.on('disconnect', () => { PR.client = null; PR.name = ''; updPr(); });
+  try {
+    const info = await client.connect();
+    PR.client = client;
+    const meta = client.getModelMetadata();
+    PR.name = (meta && meta.model) || (info && info.deviceName) || 'NIIMBOT';
+    updPr(); toast('เชื่อมต่อ ' + PR.name + ' แล้ว');
+    return true;
+  } catch(e){
+    console.error(e); PR.client = null; updPr();
+    if (!/cancel|chosen/i.test(String(e && e.message))) toast('เชื่อมต่อไม่สำเร็จ: ' + (e && e.message || e));
+    return false;
+  }
+}
+async function togglePrinter(){
+  if (PR.busy) return;
+  if (PR.client && PR.client.isConnected()){ try { await PR.client.disconnect(); } catch(e){} PR.client = null; PR.name = ''; updPr(); toast('ตัดการเชื่อมต่อแล้ว'); return; }
+  await connectPrinter();
+}
+function b64url(str){ return btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function printAssets(list){
+  list = list.filter(Boolean).flatMap(pieces);
+  if (!list.length) return;
+  if (!PRINT_URL) return toast('ยังไม่ได้ตั้งค่าที่อยู่หน้าพิมพ์ป้าย (PRINT_PAGE_URL ใน Code.gs)');
+  const url = PRINT_URL + '#' + b64url(JSON.stringify({v:1, l:L(), items:list.map(a => [a.code, a.name || '', a.branch || ''])}));
+  const w = window.open(url, '_blank');
+  if (!w){
+    $('#layer').innerHTML = `<div class="scrim" data-act="close-drawer"></div><aside class="drawer" role="dialog" aria-modal="true" style="max-width:420px">
+      <div class="dhead"><div><b>พร้อมพิมพ์ ${list.length} ดวง</b></div><button class="btn sm" data-act="close-drawer">ปิด</button></div>
+      <div class="dbody"><p>กดปุ่มด้านล่างเพื่อเปิดหน้าพิมพ์ป้าย แล้วเชื่อมต่อเครื่อง NIIMBOT ที่หน้านั้น</p>
+      <a class="btn pri" href="${url}" target="_blank" rel="noopener" data-act="close-drawer">เปิดหน้าพิมพ์ป้าย</a></div></aside>`;
+  }
+  const ids = new Set(list.map(x => x.id).filter(Boolean));
+  state.assets.filter(a => ids.has(a.id)).forEach(a => a.history.push({date: today, text: 'ส่งพิมพ์ป้าย'}));
+  save();
+}
+
+function addBranch(b){ b = String(b||'').trim(); if (b && !state.branches.includes(b)){ state.branches.push(b); state.branches.sort((x,y)=>x.localeCompare(y,'th')); } return b; }
+
+/* ---------- pending registration queue ---------- */
+const PQ = () => (state.pending = state.pending || []);
+function fromPending(pid){
+  const p = PQ().find(x => x.pid === pid); if (!p) return null;
+  const c = state.cats.some(x => x.code === p.cat) ? p.cat : 'OF';
+  return {cat:c, name:p.name, branch:p.branch, custodian:'', vendor:p.vendor||'', invoice:p.invoice||'', acqDate:p.acqDate||today, cost:p.cost||'',
+    salvage: cat(c).dep === false ? 0 : 1, life: cat(c).life, legacy:'', note: p.note || '', qty: p.qty || 1, unit: p.unit || 'ชิ้น',
+    docNo: ((p.refs||[]).find(r => /^(AP|EXP)/i.test(r)) || (p.refs||[])[0] || '')};
+}
+function linkPending(){
+  if (!drawer || !drawer.from) return {};
+  const i = PQ().findIndex(x => x.pid === drawer.from); if (i < 0) return {};
+  const p = PQ().splice(i, 1)[0];
+  return {refs: p.refs || [], po: p.po || '', src: p.refs && p.refs.length ? 'trcloud' : 'manual',
+    history: [{date: today, text: 'ขึ้นทะเบียนจากรายการรอ' + (p.refs && p.refs.length ? ' (' + p.refs.join(', ') + ')' : '')}]};
+}
+function rejectPending(pid){
+  const i = PQ().findIndex(x => x.pid === pid); if (i < 0) return;
+  const p = PQ()[i];
+  const why = prompt('เหตุผลที่ไม่ขึ้นทะเบียน (เช่น ต่ำกว่าเกณฑ์ บันทึกเป็นค่าใช้จ่าย / ซ้ำกับรายการเดิม / เป็นค่าบริการรายปี)', p.cost < state.threshold ? 'ต่ำกว่าเกณฑ์ บันทึกเป็นค่าใช้จ่าย' : '');
+  if (why === null) return;
+  PQ().splice(i, 1); state.rejected = state.rejected || [];
+  state.rejected.unshift(Object.assign(p, {rejReason: why.trim() || 'ไม่ระบุ', rejDate: today}));
+  save(); render(); toast('ย้ายไปรายการไม่ขึ้นทะเบียนแล้ว');
+}
+function vPending(){
+  const q = ui.pq.trim().toLowerCase();
+  const all = PQ();
+  const rows = all.filter(p => (!ui.pqcat || p.cat === ui.pqcat) && (!q || [p.name, p.branch, p.vendor, p.invoice, (p.refs||[]).join(' ')].join(' ').toLowerCase().includes(q)))
+    .sort((x,y) => (x.acqDate||'').localeCompare(y.acqDate||''));
+  const total = rows.reduce((s,p) => s + (+p.cost||0), 0);
+  const counts = {}; all.forEach(p => counts[p.cat] = (counts[p.cat]||0) + 1);
+  const rej = state.rejected || [];
+  return `
+  <div class="spread"><div><h1>รอขึ้นทะเบียน</h1><p class="sub">${rows.length} รายการ · ${fmt(total)} บาท · รายการซื้อที่บันทึกบัญชีแล้วแต่ยังไม่มีรหัสทรัพย์สิน ตรวจหมวด สาขา และราคา แล้วกด "ขึ้นทะเบียน" เพื่อออกรหัส</p></div>
+    <div class="row"><button class="btn pri" data-act="new-pending">+ เพิ่มรายการรอ</button></div></div>
+  <div class="pqhead">
+    <label class="f" style="flex:2 1 240px">ค้นหา<input id="pq-q" type="search" placeholder="ชื่อ สาขา ผู้ขาย เลขที่เอกสาร" value="${esc(ui.pq)}"></label>
+    <label class="f" style="flex:1 1 200px">หมวดที่แนะนำ<select id="pq-cat"><option value="">ทุกหมวด (${all.length})</option>${state.cats.filter(c=>counts[c.code]).map(c=>`<option value="${c.code}" ${ui.pqcat===c.code?'selected':''}>${c.code} · ${esc(c.name)} (${counts[c.code]})</option>`).join('')}</select></label>
+  </div>
+  ${!rows.length ? `<section class="card note" style="text-align:center;padding:40px">${all.length ? 'ไม่พบรายการตามเงื่อนไข' : 'ไม่มีรายการรอขึ้นทะเบียน'}</section>` :
+  `<section class="card" style="padding:4px 8px"><div class="scroll"><table class="pq">
+    <thead><tr><th>วันที่</th><th>รายการ</th><th>สาขา</th><th>เอกสาร</th><th class="n">ราคาทุน</th><th>หมวดแนะนำ</th><th></th></tr></thead>
+    <tbody>${rows.map(p => `<tr>
+      <td style="white-space:nowrap">${thDate(p.acqDate)}</td>
+      <td>${esc(p.name)}${p.qty>1?` <span class="note">× ${p.qty} ${esc(p.unit||'ชิ้น')}</span>`:''}${p.cat!=='CS' && p.cost/(p.qty||1) < state.threshold ? '<span class="ex" style="color:var(--warn)">ต่ำกว่าเกณฑ์</span>' : ''}<div class="note">${esc(p.vendor||'')}${p.accName ? ' · ' + esc(p.accName) : ''}</div></td>
+      <td>${esc(p.branch||'')}</td>
+      <td class="code" style="font-weight:500">${(p.refs||[]).map(esc).join('<br>')}</td>
+      <td class="n">${fmt(p.cost)}</td>
+      <td><span class="code">${esc(p.cat||'')}</span></td>
+      <td><div class="acts"><button class="btn sm pri" data-reg="${p.pid}">ขึ้นทะเบียน</button><button class="btn sm" data-rej="${p.pid}">ไม่ขึ้นทะเบียน</button></div></td></tr>`).join('')}</tbody>
+  </table></div></section>`}
+  ${rej.length ? `<section class="card"><h2>ไม่ขึ้นทะเบียน (${rej.length})</h2><div class="scroll"><table>
+    <thead><tr><th>รายการ</th><th>เอกสาร</th><th class="n">จำนวนเงิน</th><th>เหตุผล</th><th></th></tr></thead>
+    <tbody>${rej.map(p => `<tr><td>${esc(p.name)}<div class="note">${esc(p.branch||'')}</div></td><td class="code" style="font-weight:500">${(p.refs||[]).map(esc).join(', ')}</td><td class="n">${fmt(p.cost)}</td><td>${esc(p.rejReason)}<div class="note">${thDate(p.rejDate)}</div></td><td><button class="btn sm" data-unrej="${p.pid}">นำกลับเข้าคิว</button></td></tr>`).join('')}</tbody>
+  </table></div></section>` : ''}`;
+}
+function dPendingNew(){
+  const head = `<div style="font-weight:600;font-size:18px">เพิ่มรายการรอขึ้นทะเบียน</div><div class="note">ยังไม่ออกรหัส จะออกรหัสเมื่อกดขึ้นทะเบียน</div>`;
+  const body = `<div class="grid2">
+    <label class="f" style="grid-column:1/-1">รายการ<input id="p-name" placeholder="เช่น ตู้แช่ 2 ประตู สาขาสีลม"></label>
+    <label class="f">หมวดที่แนะนำ<select id="p-cat">${state.cats.map(c=>`<option value="${c.code}">${c.code} · ${esc(c.name)}</option>`).join('')}</select></label>
+    <label class="f">วันที่ได้มา<input type="date" id="p-date" value="${today}"></label>
+    <label class="f">สาขา / ที่ตั้ง<input id="p-branch" list="branchlist2"><datalist id="branchlist2">${state.branches.map(b=>`<option value="${esc(b)}">`).join('')}</datalist></label>
+    <label class="f">ราคาทุน (บาท ไม่รวม VAT)<input type="number" id="p-cost" min="0" step="0.01"></label>
+    <label class="f">ผู้ขาย<input id="p-vendor"></label>
+    <label class="f">เลขที่เอกสาร (AP / PV / ใบกำกับ)<input id="p-ref"></label>
+    <label class="f" style="grid-column:1/-1">หมายเหตุ<textarea id="p-note" rows="2"></textarea></label></div>`;
+  return [head, body, `<button class="btn" data-act="close-drawer">ยกเลิก</button><button class="btn pri" data-act="save-pending">เพิ่มเข้าคิว</button>`];
+}
+function savePending(){
+  const name = $('#p-name').value.trim(), cost = parseFloat($('#p-cost').value);
+  if (!name) return toast('กรอกรายการ');
+  if (!(cost > 0)) return toast('ราคาทุนต้องมากกว่า 0');
+  const ref = $('#p-ref').value.trim();
+  state.pqseq = (state.pqseq || 0) + 1;
+  PQ().push({pid:'m' + Date.now().toString(36) + state.pqseq, cat:$('#p-cat').value, name, acqDate:$('#p-date').value || today, branch:addBranch($('#p-branch').value),
+    cost, vendor:$('#p-vendor').value.trim(), invoice:'', refs: ref ? [ref] : [], note:$('#p-note').value.trim()});
+  save(); closeDrawer(); state.view = 'pending'; render(); toast('เพิ่มเข้าคิวรอขึ้นทะเบียนแล้ว');
+}
+
+
+function saveCount(){
+  const a = cur(), q = parseInt($('#cnt-qty').value, 10), d = $('#cnt-date').value || today;
+  if (!(q >= 0)) return toast('กรอกจำนวนคงเหลือ');
+  a.counts = a.counts || []; a.counts.push({date: d, qty: q});
+  const used = (+a.qty || 1) - q;
+  a.history.push({date: d, text: `ตรวจนับคงเหลือ ${q} ${a.unit || 'ชิ้น'}` + (used > 0 ? ` ใช้ไป ${used} มูลค่า ${fmt(used * unitCost(a))} บาท` : '')});
+  save(); renderDrawer(); render(); toast('บันทึกผลนับแล้ว');
+}
+
+/* ---------- import / backup ---------- */
+async function importFile(file){
+  let data;
+  try { data = JSON.parse(await file.text()); } catch(e){ return toast('อ่านไฟล์ไม่ได้ ต้องเป็นไฟล์ .json'); }
+  if (data && data.format === 'fa-register-import' && Array.isArray(data.assets)){
+    const incoming = Array.isArray(data.pending) ? data.pending : [];
+    if (state.assets.length || PQ().length){
+      const seen = new Set(); state.assets.forEach(a => (a.refs||[]).forEach(r => seen.add(r)));
+      PQ().concat(state.rejected||[]).forEach(p => (p.refs||[]).forEach(r => seen.add(r)));
+      const fresh = incoming.filter(p => !(p.refs||[]).some(r => seen.has(r)));
+      fresh.forEach(p => { p.pid = 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); });
+      PQ().push(...fresh); save(); render();
+      return toast(fresh.length ? 'เพิ่มรายการใหม่เข้าคิวรอขึ้นทะเบียน ' + fresh.length + ' รายการ' : 'ไม่มีรายการใหม่ ทุกเอกสารในไฟล์มีอยู่แล้ว');
+    }
+    TR = data.assets; TR_SKIPPED = Array.isArray(data.skipped) ? data.skipped : []; TR_PENDING = incoming;
+    state = seed(); save(); render(); toast('นำเข้า ' + state.assets.length + ' รายการ และรอขึ้นทะเบียน ' + PQ().length + ' รายการ');
+  } else if (false && data && data.format === 'fa-register-backup' && data.state && Array.isArray(data.state.assets)){
+    if (state.assets.length && !confirm('แทนที่ข้อมูลเดิมในเครื่องนี้ด้วยไฟล์สำรอง?')) return;
+    state = data.state; save(); render(); toast('กู้คืนจากไฟล์สำรอง ' + state.assets.length + ' รายการแล้ว');
+  } else toast('ไฟล์นี้ไม่ใช่ไฟล์ข้อมูลทะเบียนสินทรัพย์');
+}
+function backup(){
+  const blob = new Blob([JSON.stringify({format:'fa-register-backup', version:1, saved:new Date().toISOString(), state})], {type:'application/json'});
+  const u = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = u; a.download = 'asset-register-backup-' + today + '.json'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 1000);
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', e => {
+  const nb = e.target.closest('#nav button'); if (nb){ state.view = nb.dataset.view; ui.resetArmed = false; save(); render(); return; }
+  const fc = e.target.closest('[data-fcat]'); if (fc){ ui.fcat = fc.dataset.fcat; ui.limit = 48; render(); return; }
+  const gc = e.target.closest('[data-gocat]'); if (gc){ ui.fcat = gc.dataset.gocat; ui.fbranch = ''; ui.q=''; ui.fstatus=''; ui.limit = 48; state.view = 'register'; render(); window.scrollTo(0,0); return; }
+  const gb = e.target.closest('[data-gobranch]'); if (gb){ ui.fbranch = gb.dataset.gobranch; ui.fcat = ''; ui.q=''; ui.fstatus=''; ui.limit = 48; state.view = 'register'; render(); window.scrollTo(0,0); return; }
+  const gv = e.target.closest('[data-goview]'); if (gv){ state.view = gv.dataset.goview; save(); render(); window.scrollTo(0,0); return; }
+  const rg = e.target.closest('[data-reg]'); if (rg){ drawer = {mode:'form', id:null, pending:[], from:rg.dataset.reg}; renderDrawer(); updForm(); return; }
+  const rj = e.target.closest('[data-rej]'); if (rj){ rejectPending(rj.dataset.rej); return; }
+  const ub = e.target.closest('[data-unrej]'); if (ub){ const i = state.rejected.findIndex(p=>p.pid===ub.dataset.unrej); if (i>=0){ const p = state.rejected.splice(i,1)[0]; delete p.rejReason; delete p.rejDate; state.pending.push(p); save(); render(); toast('นำกลับเข้าคิวแล้ว'); } return; }
+  const md = e.target.closest('[data-mode]'); if (md){ ui.mode = md.dataset.mode; render(); return; }
+  const tr = e.target.closest('[data-open]'); if (tr){ openDrawer('detail', tr.dataset.open); return; }
+  const pp = e.target.closest('[data-primary]'); if (pp && drawer){ const a = cur(); a.photos.forEach(p => p.primary = p.id === pp.dataset.primary); save(); renderDrawer(); render(); return; }
+  const dp = e.target.closest('[data-delphoto]'); if (dp && drawer){ const a = cur(); a.photos = a.photos.filter(p => p.id !== dp.dataset.delphoto);
+    if (a.photos.length && !a.photos.some(p=>p.primary)) a.photos[0].primary = true; save(); renderDrawer(); render(); return; }
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const act = b.dataset.act;
+  if (act === 'close-drawer') closeDrawer();
+  else if (act === 'new') openDrawer('form', null);
+  else if (act === 'new-pending') { drawer = {mode:'pnew', id:null, pending:[]}; renderDrawer(); }
+  else if (act === 'save-pending') savePending();
+  else if (act === 'to-cs') { const sel = $('#f-cat'); sel.value = 'CS'; sel.dispatchEvent(new Event('change', {bubbles:true})); }
+  else if (act === 'count') saveCount();
+  else if (act === 'edit') { drawer.mode = 'form'; renderDrawer(); }
+  else if (act === 'transfer') { drawer.mode = 'transfer'; renderDrawer(); }
+  else if (act === 'dispose') { drawer.mode = 'dispose'; renderDrawer(); updDispose(); }
+  else if (act === 'capitalize') { drawer.mode = 'capitalize'; renderDrawer(); updCap(); }
+  else if (act === 'back') { drawer.id ? (drawer.mode = 'detail', renderDrawer()) : closeDrawer(); }
+  else if (act === 'save') saveForm();
+  else if (act === 'do-transfer') doTransfer();
+  else if (act === 'do-dispose') doDispose();
+  else if (act === 'do-capitalize') doCapitalize();
+  else if (act === 'more') { ui.limit += 48; render(); }
+  else if (act === 'close') { const ym = ui.month; state.closed = state.closed.includes(ym) ? state.closed.filter(x=>x!==ym) : state.closed.concat(ym); save(); render(); toast(state.closed.includes(ym) ? 'ปิดงวด '+thMonth(ym)+' แล้ว' : 'เปิดงวดอีกครั้ง'); }
+  else if (act === 'print-one') { if (cur().docNo){ printAssets([cur()]); return; } const n = Math.max(1, Math.min(200, parseInt($('#copies').value,10) || 1)); printAssets(Array(n).fill(cur())); }
+  else if (act === 'print-filtered') { const rows = filtered(); const nLbl = rows.reduce((x,a) => x + pieces(a).length, 0); if (nLbl > 20 && !confirm('พิมพ์ป้าย ' + nLbl + ' ดวง?')) return; printAssets(rows); }
+  else if (act === 'print-test') printAssets([state.assets[0] || {code:'OF2601/0001', name:'ป้ายทดสอบ เครื่องพิมพ์ NIIMBOT', branch:'สำนักงานใหญ่'}]);
+  else if (act === 'backup') backup();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && drawer) closeDrawer();
+  if (e.key === 'Enter' && e.target.matches('tr[data-open]')) openDrawer('detail', e.target.dataset.open);
+});
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.id === 'asof' && t.value){ ui.asOf = t.value; render(); }
+  else if (t.id === 'pq-q'){ ui.pq = t.value; const pos = t.selectionStart; render(); const q = $('#pq-q'); q.focus(); try{ q.setSelectionRange(pos,pos); }catch(_){} }
+  else if (t.id === 'q'){ ui.q = t.value; const pos = t.selectionStart; render(); const q = $('#q'); q.focus(); try{ q.setSelectionRange(pos,pos); }catch(_){} }
+  else if (t.id === 'month' && t.value){ ui.month = t.value; render(); }
+  else if (t.dataset.life !== undefined){ const v = parseInt(t.value,10); if (v > 0){ state.cats[+t.dataset.life].life = v; save(); } }
+  else if (t.id === 'threshold'){ state.threshold = +t.value || 0; save(); }
+  else if (t.id === 'f-date' || t.id === 'f-cost' || t.id === 'f-qty' || t.id === 'f-doc'){ updForm(); }
+  else if (t.id && t.id.startsWith('x-')) updDispose();
+  else if (t.id === 'c-date') updCap();
+});
+document.addEventListener('change', async e => {
+  const t = e.target;
+  if (t.id === 'fcat'){ ui.fcat = t.value; render(); }
+  else if (t.id === 'fbranch'){ ui.fbranch = t.value; ui.limit = 48; render(); }
+  else if (t.id === 'fstatus'){ ui.fstatus = t.value; render(); }
+  else if (t.id === 'pq-cat'){ ui.pqcat = t.value; render(); }
+  else if (t.id === 'importfile' && t.files.length){ importFile(t.files[0]); t.value = ''; }
+  else if (t.id === 'l-size'){ L().size = t.value; save(); }
+  else if (t.id === 'l-type'){ L().type = +t.value; save(); }
+  else if (t.id === 'l-task'){ L().task = t.value; save(); }
+  else if (t.id === 'l-density'){ L().density = Math.max(1, Math.min(5, parseInt(t.value,10)||3)); t.value = L().density; save(); }
+  else if (t.id === 'f-cat'){ $('#f-life').value = cat(t.value).life; $('#f-salv').value = cat(t.value).dep === false ? 0 : 1; updForm(); }
+  else if (t.id === 'c-cat'){ $('#c-life').value = cat(t.value).life; updCap(); }
+  else if (t.id === 'addphotos' && t.files.length){
+    const a = cur(); const ps = await readPhotos(t.files); a.photos.push(...ps);
+    if (!a.photos.some(p=>p.primary) && a.photos.length) a.photos[0].primary = true;
+    a.history.push({date: today, text: 'เพิ่มรูปภาพ ' + ps.length + ' รูป'});
+    if (!save()){ a.photos.splice(a.photos.length - ps.length); a.history.pop(); }
+    renderDrawer(); render();
+  }
+  else if (t.id === 'formphotos' && t.files.length){
+    const ps = await readPhotos(t.files); drawer.pending.push(...ps);
+    $('#pendthumbs').querySelectorAll('.tw').forEach(n=>n.remove());
+    $('#pendthumbs').insertAdjacentHTML('afterbegin', drawer.pending.map(p=>`<div class="tw"><img src="${p.src}" alt=""></div>`).join(''));
+  }
+});
+const cur = () => state.assets.find(x => x.id === drawer.id);
+
+function updForm(){
+  if (!drawer || drawer.mode !== 'form') return;
+  if (!drawer.id){ const c = $('#f-cat').value, d = $('#f-date').value || today, sup = !!cat(c).supply, doc = ($('#f-doc').value||'').trim().toUpperCase();
+    $('#f-docwrap').hidden = !sup;
+    $('#codepreview').textContent = sup ? (doc ? supCode(doc, parseInt($('#f-qty').value,10)||1).text : 'ใส่เลขที่เอกสาร AP / EXP') : nextCode(c, d); }
+  const cost = +$('#f-cost').value, c = $('#f-cat').value, q = Math.max(1, parseInt($('#f-qty').value,10) || 1);
+  $('#f-warn').innerHTML = cost && cat(c).dep !== false && cost / q < state.threshold ? `<div class="warnbox">ราคาต่อหน่วยต่ำกว่าเกณฑ์ ${fmt(state.threshold)} บาท ควรบันทึกเป็นวัสดุสิ้นเปลือง (1306000) แทนการลงทะเบียน${drawer.id?'':' <button type="button" class="btn sm" data-act="to-cs">เปลี่ยนเป็นวัสดุสิ้นเปลือง</button>'}</div>` : '';
+}
+function saveForm(){
+  const name = $('#f-name').value.trim(), date = $('#f-date').value, cost = parseFloat($('#f-cost').value);
+  const c = $('#f-cat').value, life = parseInt($('#f-life').value,10) || 0, salvage = parseFloat($('#f-salv').value) || 0;
+  if (!name) return toast('กรอกชื่อสินทรัพย์');
+  if (!date) return toast('เลือกวันที่ได้มา');
+  if (!(cost > 0)) return toast('ราคาทุนต้องมากกว่า 0');
+  if (cat(c).dep !== false && !(life > 0)) return toast('อายุการใช้งานต้องอย่างน้อย 1 ปี');
+  if (salvage >= cost) return toast('มูลค่าซากต้องน้อยกว่าราคาทุน');
+  const fields = {name, acqDate:date, cost, life, salvage, branch:addBranch($('#f-branch').value), custodian:$('#f-cust').value.trim(), vendor:$('#f-vendor').value.trim(),
+    invoice:$('#f-inv').value.trim(), legacy:$('#f-legacy').value.trim(), note:$('#f-note').value.trim(),
+    qty: Math.max(1, parseInt($('#f-qty').value,10) || 1), unit: $('#f-unit').value.trim() || 'ชิ้น'};
+  if (drawer.id){
+    const a = cur(); Object.assign(a, fields);
+    if (drawer.pending.length){ a.photos.push(...drawer.pending); if (!a.photos.some(p=>p.primary)) a.photos[0].primary = true; }
+    a.history.push({date: today, text: 'แก้ไขข้อมูล'});
+    save(); drawer.mode = 'detail'; drawer.pending = []; renderDrawer(); render(); toast('บันทึกการแก้ไขแล้ว');
+  } else {
+    let sc = null;
+    if (cat(c).supply){ const doc = ($('#f-doc').value||'').trim().toUpperCase(); if (!doc) return toast('ใส่เลขที่เอกสาร AP / EXP เพื่อตั้งรหัส'); sc = Object.assign(supCode(doc, fields.qty), {docNo: doc}); delete sc.text; }
+    const a = Object.assign({id:uid(), code: nextCode(c, date), cat:c, status: cat(c).supply ? 'active' : cat(c).dep === false ? 'cip' : 'active', photos: drawer.pending, sample:false,
+      history:[{date: today, text:'ลงทะเบียนสินทรัพย์'}]}, fields, linkPending(), sc || {});
+    if (a.photos.length) a.photos[0].primary = true;
+    state.assets.push(a);
+    if (!save()){ state.assets.pop(); return; }
+    drawer = {mode:'detail', id:a.id, pending:[]}; state.view = 'register'; render(); renderDrawer(); toast('ลงทะเบียน ' + codeText(a) + ' แล้ว');
+  }
+}
+function doTransfer(){
+  const a = cur(), br = $('#t-branch').value, cu = $('#t-cust').value.trim(), d = $('#t-date').value || today, n = $('#t-note').value.trim();
+  a.history.push({date:d, text:`โอนจาก ${a.branch}${a.custodian?' ('+a.custodian+')':''} ไป ${br}${cu?' ('+cu+')':''}${n?' · '+n:''}`});
+  a.branch = br; a.custodian = cu; save(); drawer.mode = 'detail'; renderDrawer(); render(); toast('บันทึกการโอนแล้ว');
+}
+function updDispose(){
+  const box = $('#x-calc'); if (!box) return; const a = cur(), d = $('#x-date').value || today, p = parseFloat($('#x-proc').value) || 0;
+  const acc = accDep(Object.assign({}, a, {disposal:null}), d), bv = r2(a.cost - acc), gl = r2(p - bv);
+  box.innerHTML = `<dl class="facts"><div><dt>ราคาทุน</dt><dd>${fmt(a.cost)}</dd></div><div><dt>ค่าเสื่อมสะสมถึงวันจำหน่าย</dt><dd>${fmt(acc)}</dd></div>
+    <div><dt>มูลค่าสุทธิ</dt><dd>${fmt(bv)}</dd></div><div><dt>${gl>=0?'กำไร':'ขาดทุน'}จากการจำหน่าย</dt><dd style="color:var(${gl>=0?'--good':'--bad'})">${fmt(Math.abs(gl))}</dd></div></dl>`;
+}
+function doDispose(){
+  const a = cur(), d = $('#x-date').value, p = parseFloat($('#x-proc').value) || 0, k = $('#x-kind').value, ref = $('#x-ref').value.trim();
+  if (!d || d < a.acqDate) return toast('วันที่จำหน่ายต้องไม่ก่อนวันที่ได้มา');
+  a.status = 'disposed'; a.disposal = {date:d, proceeds:p, kind:k};
+  a.history.push({date:d, text:`จำหน่าย (${k})${p?' รับเงิน '+fmt(p)+' บาท':''}${ref?' · '+ref:''}`});
+  save(); drawer.mode = 'detail'; renderDrawer(); render(); toast(a.code + ' จำหน่ายแล้ว');
+}
+function updCap(){ const el = $('#c-code'); if (el) el.value = nextCode($('#c-cat').value, $('#c-date').value || today); }
+function doCapitalize(){
+  const a = cur(), c = $('#c-cat').value, d = $('#c-date').value, life = parseInt($('#c-life').value,10);
+  if (!d || d < a.acqDate) return toast('วันที่พร้อมใช้ต้องไม่ก่อนวันเริ่มงาน');
+  if (!(life > 0)) return toast('อายุการใช้งานต้องอย่างน้อย 1 ปี');
+  const code = nextCode(c, d);
+  const n = {id:uid(), code, cat:c, name:a.name.replace('งานก่อสร้าง','').trim() || a.name, branch:a.branch, custodian:a.custodian, vendor:a.vendor, invoice:a.invoice,
+    acqDate:d, cost:a.cost, salvage:1, life, status:'active', photos:a.photos.map(p=>Object.assign({},p)), legacy:'', note:'', sample:false, fromCode:a.code,
+    history:[{date:d, text:'โอนจากงานระหว่างก่อสร้าง ' + a.code}]};
+  a.status = 'transferred'; a.transfer = {date:d, toCode:code}; a.history.push({date:d, text:'โอนเข้าสินทรัพย์ ' + code});
+  state.assets.push(n); save(); drawer = {mode:'detail', id:n.id, pending:[]}; renderDrawer(); render(); toast('ออกรหัส ' + code + ' แล้ว');
+}
+
+boot();
+})();
+</script>
+</body>
+</html>
