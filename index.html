@@ -351,7 +351,8 @@ const isSup = a => !!cat(a.cat).supply;
 const codeText = a => a.docNo && (+a.seqTo||0) > (+a.seqFrom||0) ? a.code + '–' + pad(a.seqTo, 4) : a.code;
 const pieceFrom = doc => { let m = 0; state.assets.forEach(a => { if (a.docNo === doc) m = Math.max(m, +a.seqTo || +a.seqFrom || 0); }); return m + 1; };
 const supCode = (doc, qty) => { const f = pieceFrom(doc), t = f + Math.max(1, qty) - 1; return {code: doc + '/' + pad(f, 4), seqFrom: f, seqTo: t, text: doc + '/' + pad(f, 4) + (t > f ? '–' + pad(t, 4) : '')}; };
-const pieces = a => a.docNo ? Array.from({length: Math.max(1, (+a.seqTo||0) - (+a.seqFrom||0) + 1)}, (_, i) => Object.assign({}, a, {code: a.docNo + '/' + pad((+a.seqFrom||1) + i, 4)})) : [a];
+const snList = a => String(a.sn || '').split(',').map(x => x.trim()).filter(Boolean);
+const pieces = a => { const sl = snList(a); return a.docNo ? Array.from({length: Math.max(1, (+a.seqTo||0) - (+a.seqFrom||0) + 1)}, (_, i) => Object.assign({}, a, {code: a.docNo + '/' + pad((+a.seqFrom||1) + i, 4), sn: sl.length > 1 ? (sl[i] || '') : (sl[0] || '')})) : [a]; };
 const unitCost = a => (+a.cost || 0) / Math.max(1, +a.qty || 1);
 const qtyText = a => (+a.qty || 1) > 1 || isSup(a) ? `${(+a.qty||1).toLocaleString('th-TH')} ${a.unit || 'ชิ้น'}` : '';
 const lowVal = a => cat(a.cat).dep !== false && unitCost(a) < state.threshold;
@@ -432,7 +433,7 @@ function filtered(){
   return state.assets.filter(a =>
     (!ui.fcat || a.cat === ui.fcat) && (!ui.fbranch || a.branch === ui.fbranch) &&
     (!ui.fstatus || statusOf(a)[0] === ui.fstatus) &&
-    (!q || [a.code,a.name,a.custodian,a.vendor,a.invoice,a.legacy].join(' ').toLowerCase().includes(q))
+    (!q || [a.code,a.name,a.custodian,a.vendor,a.invoice,a.legacy,a.sn].join(' ').toLowerCase().includes(q))
   ).sort((x,y) => y.acqDate.localeCompare(x.acqDate) || x.code.localeCompare(y.code));
 }
 
@@ -597,6 +598,7 @@ function dDetail(a){
     <div><dt>มูลค่าซาก</dt><dd>${fmt(a.salvage)} บาท</dd></div>
     <div><dt>อายุการใช้งาน</dt><dd>${depreciable(a)?a.life+' ปี · '+(r2(100/a.life))+'% ต่อปี':'ไม่คิดค่าเสื่อม'}</dd></div>
     ${a.refs?`<div><dt>เอกสารใน TRCloud</dt><dd class="code" style="font-weight:500">${a.refs.map(esc).join(', ')}${a.po?' · '+esc(a.po):''}</dd></div>`:''}
+    ${a.sn?`<div><dt>Serial No.</dt><dd class="code" style="font-weight:500">${esc(a.sn)}</dd></div>`:''}
     ${a.legacy?`<div><dt>รหัสเดิม</dt><dd>${esc(a.legacy)}</dd></div>`:''}
     ${a.transfer?`<div><dt>โอนไปเป็น</dt><dd class="code">${esc(a.transfer.toCode)}</dd></div>`:''}
     ${a.fromCode?`<div><dt>โอนมาจาก</dt><dd class="code">${esc(a.fromCode)}</dd></div>`:''}
@@ -647,6 +649,7 @@ function dForm(a){
     <label class="f">หน่วย<input id="f-unit" list="unitlist" value="${esc(v.unit||'ชิ้น')}"><datalist id="unitlist">${['ชิ้น','ตัว','เครื่อง','ชุด','ใบ','อัน','กล่อง','แพ็ค'].map(u=>`<option value="${u}">`).join('')}</datalist></label>
     <label class="f">อายุการใช้งาน (ปี)<input type="number" id="f-life" min="0" max="50" step="1" value="${v.life}"></label>
     <label class="f">รหัสเดิม (ถ้ามี)<input id="f-legacy" value="${esc(v.legacy)}"></label>
+    <label class="f">Serial No. (SN)<input id="f-sn" value="${esc(v.sn||'')}" placeholder="หลายชิ้นคั่นด้วย , ตามลำดับรหัส" autocomplete="off"></label>
     <label class="f" style="grid-column:1/-1">หมายเหตุ<textarea id="f-note" rows="2">${esc(v.note)}</textarea></label>
     <div id="f-warn" style="grid-column:1/-1"></div>
     <div style="grid-column:1/-1;display:grid;gap:8px"><span class="note">รูปภาพ</span>
@@ -711,7 +714,7 @@ const PR = {client:null, busy:false, name:''};
 const F_TH = '"IBM Plex Sans Thai", Tahoma, sans-serif', F_MONO = '"IBM Plex Mono", "Courier New", monospace';
 
 async function fontsReady(list){
-  const txt = list.map(a => [a.code, a.name, a.branch].join(' ')).join(' ') + ' ทรัพย์สินของบริษัท';
+  const txt = list.map(a => [a.code, a.name, a.branch, 'SN ' + (a.sn || '')].join(' ')).join(' ') + ' ทรัพย์สินของบริษัท';
   try { await Promise.all(['400 18px ' + F_TH, '600 18px ' + F_TH, '600 24px ' + F_MONO].map(f => document.fonts.load(f, txt))); } catch(e) {}
 }
 function fitText(ctx, text, maxW, size, weight, family, min){
@@ -758,12 +761,14 @@ function drawFull(ctx, a, ox, oy){
   const cs = fitText(ctx, a.code, tw, 25, 600, F_MONO, 16);
   ctx.font = `400 19px ${F_TH}`; const nm = wrapLines(ctx, a.name || '', tw, 2);
   ctx.font = `600 18px ${F_TH}`; const br = ellipsize(ctx, a.branch || '', tw);
-  const lh = [24, cs + 8, ...nm.map(() => 24), 24], total = lh.reduce((x,y)=>x+y, 0) + 6;
+  ctx.font = `500 15px ${F_MONO}`; const sn = a.sn ? ellipsize(ctx, 'SN ' + a.sn, tw) : '';
+  const lh = [24, cs + 8, ...nm.map(() => 24), 24].concat(sn ? [20] : []), total = lh.reduce((x,y)=>x+y, 0) + 6;
   let y = oy + (H - total)/2;
   ctx.font = `400 17px ${F_TH}`; y += lh[0]; ctx.fillText(small, tx, y - 6);
   ctx.font = `600 ${cs}px ${F_MONO}`; y += lh[1]; ctx.fillText(a.code, tx, y - 7);
   ctx.font = `400 19px ${F_TH}`; nm.forEach(l => { y += 24; ctx.fillText(l, tx, y - 5); });
   ctx.font = `600 18px ${F_TH}`; y += 24 + 6; ctx.fillText(br, tx, y - 5);
+  if (sn){ ctx.font = `500 15px ${F_MONO}`; y += 20; ctx.fillText(sn, tx, y - 3); }
 }
 /* Compact label 50×15 mm: QR left, code / name / branch right. */
 function drawCompact(ctx, a, ox, oy){
@@ -774,7 +779,7 @@ function drawCompact(ctx, a, ox, oy){
   const cs = fitText(ctx, a.code, tw, 26, 600, F_MONO, 16);
   ctx.fillText(a.code, tx, oy + 38);
   ctx.font = `400 18px ${F_TH}`; ctx.fillText(ellipsize(ctx, a.name || '', tw), tx, oy + 68);
-  ctx.font = `600 16px ${F_TH}`; ctx.fillText(ellipsize(ctx, a.branch || '', tw), tx, oy + 96);
+  ctx.font = `600 16px ${F_TH}`; ctx.fillText(ellipsize(ctx, (a.branch || '') + (a.sn ? ' · SN ' + a.sn : ''), tw), tx, oy + 96);
 }
 /* One printed page = 50×30 mm. Full: one asset. Compact: two assets stacked. */
 function pageCanvas(items){
@@ -1089,7 +1094,7 @@ function saveForm(){
   if (cat(c).dep !== false && !(life > 0)) return toast('อายุการใช้งานต้องอย่างน้อย 1 ปี');
   if (salvage >= cost) return toast('มูลค่าซากต้องน้อยกว่าราคาทุน');
   const fields = {name, acqDate:date, cost, life, salvage, branch:addBranch($('#f-branch').value), custodian:$('#f-cust').value.trim(), vendor:$('#f-vendor').value.trim(),
-    invoice:$('#f-inv').value.trim(), legacy:$('#f-legacy').value.trim(), note:$('#f-note').value.trim(),
+    invoice:$('#f-inv').value.trim(), legacy:$('#f-legacy').value.trim(), sn:$('#f-sn').value.split(/[,\n]/).map(x => x.trim()).filter(Boolean).join(', '), note:$('#f-note').value.trim(),
     qty: Math.max(1, parseInt($('#f-qty').value,10) || 1), unit: $('#f-unit').value.trim() || 'ชิ้น'};
   if (drawer.id){
     const a = cur(); Object.assign(a, fields);

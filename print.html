@@ -64,7 +64,7 @@ const PR = {client:null, busy:false, name:''};
 const F_TH = '"IBM Plex Sans Thai", Tahoma, sans-serif', F_MONO = '"IBM Plex Mono", "Courier New", monospace';
 
 async function fontsReady(list){
-  const txt = list.map(a => [a.code, a.name, a.branch].join(' ')).join(' ') + ' ทรัพย์สินของบริษัท';
+  const txt = list.map(a => [a.code, a.name, a.branch, 'SN ' + (a.sn || '')].join(' ')).join(' ') + ' ทรัพย์สินของบริษัท';
   try { await Promise.all(['400 18px ' + F_TH, '600 18px ' + F_TH, '600 24px ' + F_MONO].map(f => document.fonts.load(f, txt))); } catch(e) {}
 }
 function fitText(ctx, text, maxW, size, weight, family, min){
@@ -111,12 +111,14 @@ function drawFull(ctx, a, ox, oy){
   const cs = fitText(ctx, a.code, tw, 25, 600, F_MONO, 16);
   ctx.font = `400 19px ${F_TH}`; const nm = wrapLines(ctx, a.name || '', tw, 2);
   ctx.font = `600 18px ${F_TH}`; const br = ellipsize(ctx, a.branch || '', tw);
-  const lh = [24, cs + 8, ...nm.map(() => 24), 24], total = lh.reduce((x,y)=>x+y, 0) + 6;
+  ctx.font = `500 15px ${F_MONO}`; const sn = a.sn ? ellipsize(ctx, 'SN ' + a.sn, tw) : '';
+  const lh = [24, cs + 8, ...nm.map(() => 24), 24].concat(sn ? [20] : []), total = lh.reduce((x,y)=>x+y, 0) + 6;
   let y = oy + (H - total)/2;
   ctx.font = `400 17px ${F_TH}`; y += lh[0]; ctx.fillText(small, tx, y - 6);
   ctx.font = `600 ${cs}px ${F_MONO}`; y += lh[1]; ctx.fillText(a.code, tx, y - 7);
   ctx.font = `400 19px ${F_TH}`; nm.forEach(l => { y += 24; ctx.fillText(l, tx, y - 5); });
   ctx.font = `600 18px ${F_TH}`; y += 24 + 6; ctx.fillText(br, tx, y - 5);
+  if (sn){ ctx.font = `500 15px ${F_MONO}`; y += 20; ctx.fillText(sn, tx, y - 3); }
 }
 /* Compact label 50×15 mm: QR left, code / name / branch right. */
 function drawCompact(ctx, a, ox, oy){
@@ -127,7 +129,7 @@ function drawCompact(ctx, a, ox, oy){
   const cs = fitText(ctx, a.code, tw, 26, 600, F_MONO, 16);
   ctx.fillText(a.code, tx, oy + 38);
   ctx.font = `400 18px ${F_TH}`; ctx.fillText(ellipsize(ctx, a.name || '', tw), tx, oy + 68);
-  ctx.font = `600 16px ${F_TH}`; ctx.fillText(ellipsize(ctx, a.branch || '', tw), tx, oy + 96);
+  ctx.font = `600 16px ${F_TH}`; ctx.fillText(ellipsize(ctx, (a.branch || '') + (a.sn ? ' · SN ' + a.sn : ''), tw), tx, oy + 96);
 }
 /* One printed page = 50×30 mm. Full: one asset. Compact: two assets stacked. */
 function pageCanvas(items){
@@ -218,7 +220,7 @@ async function printAll(){
 try {
   const d = decode(location.hash);
   CFG = Object.assign(CFG, d.l || {});
-  ITEMS = (d.items || []).map(x => ({code: String(x[0] || ''), name: String(x[1] || ''), branch: String(x[2] || '')}));
+  ITEMS = (d.items || []).map(x => ({code: String(x[0] || ''), name: String(x[1] || ''), branch: String(x[2] || ''), sn: String(x[3] || '')}));
 } catch(e){ ITEMS = []; }
 // the data lives only in this tab: drop it from the address bar and history
 try { history.replaceState(null, '', location.pathname); } catch(e){}

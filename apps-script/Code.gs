@@ -12,7 +12,7 @@
 
 const PRINT_PAGE_URL = 'https://karnchap-sudo.github.io/asset-register/print.html';
 
-const ASSET_COLS = ['id','code','cat','name','qty','unit','branch','custodian','vendor','invoice','acqDate','cost','salvage','life','status',
+const ASSET_COLS = ['id','code','cat','name','sn','qty','unit','branch','custodian','vendor','invoice','acqDate','cost','salvage','life','status',
   'docNo','seqFrom','seqTo','refs','po','legacy','note','photos','json','updatedAt','updatedBy'];
 const QUEUE_COLS = ['pid','status','cat','name','qty','unit','branch','vendor','invoice','acqDate','cost','refs','po','acc','accName','reason','note',
   'rejReason','rejDate','json','updatedAt','updatedBy'];
@@ -47,7 +47,7 @@ function onOpen(){
 /* ---------------- setup ---------------- */
 function setup(){
   const ss = SpreadsheetApp.getActive();
-  sheet_('Assets', ASSET_COLS);
+  sheet_('Assets', ASSET_COLS); migrate_('Assets', ASSET_COLS);
   sheet_('Queue', QUEUE_COLS);
   const cs = sheet_('Categories', CAT_COLS);
   if (cs.getLastRow() < 2) cs.getRange(2, 1, DEFAULT_CATS.length, CAT_COLS.length).setValues(DEFAULT_CATS);
@@ -69,12 +69,27 @@ function sheet_(name, cols){
   const ss = SpreadsheetApp.getActive();
   let sh = ss.getSheetByName(name);
   if (!sh) sh = ss.insertSheet(name);
+  if (sh.getMaxColumns() < cols.length) sh.insertColumnsAfter(sh.getMaxColumns(), cols.length - sh.getMaxColumns());
   if (sh.getLastRow() === 0){
     sh.getRange(1, 1, 1, cols.length).setValues([cols]).setFontWeight('bold');
     sh.setFrozenRows(1);
     sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).setNumberFormat('@');   // keep codes and dates as plain text
   }
   return sh;
+}
+/** Bring an existing sheet up to date when columns were added (e.g. 'sn'): rows are moved by header name. */
+function migrate_(name, cols){
+  const sh = SpreadsheetApp.getActive().getSheetByName(name);
+  if (!sh || sh.getLastRow() === 0) return;
+  const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  if (head.length === cols.length && head.every((h, i) => h === cols[i])) return;
+  const rows = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, head.length).getValues() : [];
+  const moved = rows.map(r => cols.map(c => { const i = head.indexOf(c); return i < 0 ? '' : r[i]; }));
+  if (sh.getMaxColumns() < cols.length) sh.insertColumnsAfter(sh.getMaxColumns(), cols.length - sh.getMaxColumns());
+  sh.getRange(1, 1, sh.getMaxRows(), Math.max(cols.length, head.length)).clearContent();
+  sh.getRange(1, 1, sh.getMaxRows(), cols.length).setNumberFormat('@');
+  sh.getRange(1, 1, 1, cols.length).setValues([cols]).setFontWeight('bold');
+  if (moved.length) sh.getRange(2, 1, moved.length, cols.length).setValues(moved);
 }
 function photoFolder_(){
   const props = PropertiesService.getDocumentProperties();
@@ -167,6 +182,7 @@ function saveChanges(ch){
     const user = Session.getActiveUser().getEmail() || '';
     const now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
     const result = {codes:{}, photos:{}};
+    migrate_('Assets', ASSET_COLS);
     const a = rows_('Assets');
     const idx = {}; a.rows.forEach((r, i) => { if (r[0]) idx[String(r[0])] = i; });
     const codes = a.rows.map(r => String(r[1]));
