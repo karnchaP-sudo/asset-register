@@ -167,6 +167,10 @@ dl.facts dd{margin:0;font-weight:500;overflow-wrap:anywhere;font-variant-numeric
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:60;max-width:calc(100% - 32px)}
 @media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.6}}}
 
+.cnt{display:inline-block;min-width:20px;padding:0 6px;margin-left:2px;border-radius:99px;background:var(--warn-soft);color:var(--warn);font-size:12px;font-weight:600;text-align:center}.cnt:empty{display:none}
+.pqhead{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+.pq td .note{font-size:12.5px}
+.pq .acts{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
 .prbtn{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:5px 12px;border-radius:99px;cursor:pointer;white-space:nowrap}
 .prbtn i{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
 .prbtn[data-state="on"] i{background:var(--good)}
@@ -190,6 +194,7 @@ dl.facts dd{margin:0;font-weight:500;overflow-wrap:anywhere;font-variant-numeric
     <nav id="nav">
       <button data-view="overview">ภาพรวม</button>
       <button data-view="register">ทะเบียน</button>
+      <button data-view="pending">รอขึ้นทะเบียน <b class="cnt" id="pcnt"></b></button>
       <button data-view="dep">ค่าเสื่อมราคา</button>
       <button data-view="settings">ตั้งค่า</button>
     </nav>
@@ -217,13 +222,14 @@ const DEFAULT_CATS = [
 
 let TR = [];
 let TR_SKIPPED = [];
+let TR_PENDING = [];
 function seed(){
   let n = 0;
   const assets = TR.map(t => { const [code,c,name,branch,vendor,invoice,acqDate,cost,life,refs,po] = t;
     return {id:'a'+(++n), code, cat:c, name, branch, dept:'', custodian:'', vendor, invoice, acqDate, cost, salvage:1, life, status:'active', photos:[], legacy:'', note:'',
       refs, po, src:'trcloud', history:[{date:acqDate, text:'นำเข้าจาก TRCloud (' + refs.join(', ') + ')'}]}; });
   const branches = Array.from(new Set(assets.map(a => a.branch))).sort((x,y)=>x.localeCompare(y,'th'));
-  return {cats:JSON.parse(JSON.stringify(DEFAULT_CATS)), branches, threshold:5000, assets, closed:[], seq:n, view:'overview', skipped:TR_SKIPPED.slice(), label:(state&&state.label)||undefined};
+  return {cats:JSON.parse(JSON.stringify(DEFAULT_CATS)), branches, threshold:5000, assets, closed:[], seq:n, view:'overview', skipped:TR_SKIPPED.slice(), pending:TR_PENDING.slice(), rejected:[], label:(state&&state.label)||undefined};
 }
 function load(){ try{ const s = localStorage.getItem(STORE); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
 let state = null;
@@ -294,13 +300,13 @@ function schedule(a){
 }
 
 /* ---------- views ---------- */
-let ui = {asOf: today, q:'', fcat:'', fbranch:'', fstatus:'', month: today.slice(0,7), resetArmed:false, mode:'card', limit:48};
+let ui = {pq:'', pqcat:'', asOf: today, q:'', fcat:'', fbranch:'', fstatus:'', month: today.slice(0,7), resetArmed:false, mode:'card', limit:48};
 
 function render(){
   document.querySelectorAll('#nav button').forEach(b => b.setAttribute('aria-current', b.dataset.view === state.view));
   const v = state.view;
-  $('#app').innerHTML = (!state.assets.length && v !== 'settings') ? vEmpty() : v === 'register' ? vRegister() : v === 'dep' ? vDep() : v === 'settings' ? vSettings() : vOverview();
-  updPr();
+  $('#app').innerHTML = (!state.assets.length && !PQ().length && v !== 'settings') ? vEmpty() : v === 'pending' ? vPending() : v === 'register' ? vRegister() : v === 'dep' ? vDep() : v === 'settings' ? vSettings() : vOverview();
+  updPr(); const pc = $('#pcnt'); if (pc) pc.textContent = PQ().length || '';
 }
 
 function photoOf(a){ const p = a.photos.find(p => p.primary) || a.photos[0]; return p ? p.src : null; }
@@ -389,6 +395,7 @@ function vOverview(){
         <div class="meter"><i style="width:${(v.cost/maxBr*100).toFixed(1)}%;background:var(--accent)"></i></div></div>`).join('')}
     </div></section>
     <section class="card"><h2>เรื่องที่ต้องดู</h2>
+      ${PQ().length?`<div class="alert"><span>รอขึ้นทะเบียน</span><b><button class="btn sm" data-goview="pending">${PQ().length} รายการ</button></b></div>`:''}
       <div class="alert"><span>ยังไม่มีรูปถ่ายจริง</span><b>${noPhoto} ชิ้น</b></div>
       <div class="alert"><span>ราคาต่ำกว่าเกณฑ์ ${fmt(state.threshold)} บาท</span><b>${under} ชิ้น</b></div>
       <div class="alert"><span>ค่าเสื่อมครบแล้วแต่ยังใช้งาน</span><b>${full} ชิ้น</b></div>
@@ -536,6 +543,7 @@ function renderDrawer(){
   else if (drawer.mode === 'transfer'){ [head, body, foot] = dTransfer(a); }
   else if (drawer.mode === 'dispose'){ [head, body, foot] = dDispose(a); }
   else if (drawer.mode === 'capitalize'){ [head, body, foot] = dCapitalize(a); }
+  else if (drawer.mode === 'pnew'){ [head, body, foot] = dPendingNew(); }
   $('#layer').innerHTML = `<div class="scrim" data-act="close-drawer"></div><aside class="drawer" role="dialog" aria-modal="true">
     <div class="dhead"><div style="min-width:0">${head}</div><button class="btn sm" data-act="close-drawer" aria-label="ปิด">ปิด</button></div>
     <div class="dbody">${body}</div>${foot?`<div class="dfoot">${foot}</div>`:''}</aside>`;
@@ -603,8 +611,8 @@ function dDetail(a){
 
 function dForm(a){
   const isNew = !a;
-  const v = a || {cat:'KT', name:'', branch:state.branches[0], custodian:'', vendor:'', invoice:'', acqDate:today, cost:'', salvage:1, life:cat('KT').life, legacy:'', note:''};
-  const head = `<div class="bigcode" id="codepreview">${isNew ? nextCode(v.cat, v.acqDate) : esc(v.code)}</div><div class="note">${isNew?'รหัสที่จะได้ ออกอัตโนมัติจากหมวดและวันที่ได้มา':'รหัสแก้ไขไม่ได้หลังบันทึก'}</div>`;
+  const v = a || (drawer.from ? fromPending(drawer.from) : null) || {cat:'KT', name:'', branch:state.branches[0], custodian:'', vendor:'', invoice:'', acqDate:today, cost:'', salvage:1, life:cat('KT').life, legacy:'', note:''};
+  const head = `<div class="bigcode" id="codepreview">${isNew ? nextCode(v.cat, v.acqDate) : esc(v.code)}</div>${drawer.from?`<div class="note">ขึ้นทะเบียนจากรายการรอ · ${esc((PQ().find(p=>p.pid===drawer.from)||{refs:[]}).refs.join(', '))}</div>`:''}<div class="note">${isNew?'รหัสที่จะได้ ออกอัตโนมัติจากหมวดและวันที่ได้มา':'รหัสแก้ไขไม่ได้หลังบันทึก'}</div>`;
   const body = `<form id="assetform" class="grid2" novalidate>
     <label class="f">หมวดสินทรัพย์<select id="f-cat" ${isNew?'':'disabled'}>${state.cats.map(c=>`<option value="${c.code}" ${v.cat===c.code?'selected':''}>${c.code} · ${esc(c.name)}</option>`).join('')}</select></label>
     <label class="f">วันที่ได้มา / พร้อมใช้<input type="date" id="f-date" value="${v.acqDate}" required></label>
@@ -837,14 +845,103 @@ async function printAssets(list){
 }
 
 function addBranch(b){ b = String(b||'').trim(); if (b && !state.branches.includes(b)){ state.branches.push(b); state.branches.sort((x,y)=>x.localeCompare(y,'th')); } return b; }
+
+/* ---------- pending registration queue ---------- */
+const PQ = () => (state.pending = state.pending || []);
+function fromPending(pid){
+  const p = PQ().find(x => x.pid === pid); if (!p) return null;
+  const c = state.cats.some(x => x.code === p.cat) ? p.cat : 'OF';
+  return {cat:c, name:p.name, branch:p.branch, custodian:'', vendor:p.vendor||'', invoice:p.invoice||'', acqDate:p.acqDate||today, cost:p.cost||'',
+    salvage: cat(c).dep === false ? 0 : 1, life: cat(c).life, legacy:'', note: p.note || ''};
+}
+function linkPending(){
+  if (!drawer || !drawer.from) return {};
+  const i = PQ().findIndex(x => x.pid === drawer.from); if (i < 0) return {};
+  const p = PQ().splice(i, 1)[0];
+  return {refs: p.refs || [], po: p.po || '', src: p.refs && p.refs.length ? 'trcloud' : 'manual',
+    history: [{date: today, text: 'ขึ้นทะเบียนจากรายการรอ' + (p.refs && p.refs.length ? ' (' + p.refs.join(', ') + ')' : '')}]};
+}
+function rejectPending(pid){
+  const i = PQ().findIndex(x => x.pid === pid); if (i < 0) return;
+  const p = PQ()[i];
+  const why = prompt('เหตุผลที่ไม่ขึ้นทะเบียน (เช่น ต่ำกว่าเกณฑ์ บันทึกเป็นค่าใช้จ่าย / ซ้ำกับรายการเดิม / เป็นค่าบริการรายปี)', p.cost < state.threshold ? 'ต่ำกว่าเกณฑ์ บันทึกเป็นค่าใช้จ่าย' : '');
+  if (why === null) return;
+  PQ().splice(i, 1); state.rejected = state.rejected || [];
+  state.rejected.unshift(Object.assign(p, {rejReason: why.trim() || 'ไม่ระบุ', rejDate: today}));
+  save(); render(); toast('ย้ายไปรายการไม่ขึ้นทะเบียนแล้ว');
+}
+function vPending(){
+  const q = ui.pq.trim().toLowerCase();
+  const all = PQ();
+  const rows = all.filter(p => (!ui.pqcat || p.cat === ui.pqcat) && (!q || [p.name, p.branch, p.vendor, p.invoice, (p.refs||[]).join(' ')].join(' ').toLowerCase().includes(q)))
+    .sort((x,y) => (x.acqDate||'').localeCompare(y.acqDate||''));
+  const total = rows.reduce((s,p) => s + (+p.cost||0), 0);
+  const counts = {}; all.forEach(p => counts[p.cat] = (counts[p.cat]||0) + 1);
+  const rej = state.rejected || [];
+  return `
+  <div class="spread"><div><h1>รอขึ้นทะเบียน</h1><p class="sub">${rows.length} รายการ · ${fmt(total)} บาท · รายการซื้อที่บันทึกบัญชีแล้วแต่ยังไม่มีรหัสทรัพย์สิน ตรวจหมวด สาขา และราคา แล้วกด "ขึ้นทะเบียน" เพื่อออกรหัส</p></div>
+    <div class="row"><button class="btn pri" data-act="new-pending">+ เพิ่มรายการรอ</button></div></div>
+  <div class="pqhead">
+    <label class="f" style="flex:2 1 240px">ค้นหา<input id="pq-q" type="search" placeholder="ชื่อ สาขา ผู้ขาย เลขที่เอกสาร" value="${esc(ui.pq)}"></label>
+    <label class="f" style="flex:1 1 200px">หมวดที่แนะนำ<select id="pq-cat"><option value="">ทุกหมวด (${all.length})</option>${state.cats.filter(c=>counts[c.code]).map(c=>`<option value="${c.code}" ${ui.pqcat===c.code?'selected':''}>${c.code} · ${esc(c.name)} (${counts[c.code]})</option>`).join('')}</select></label>
+  </div>
+  ${!rows.length ? `<section class="card note" style="text-align:center;padding:40px">${all.length ? 'ไม่พบรายการตามเงื่อนไข' : 'ไม่มีรายการรอขึ้นทะเบียน'}</section>` :
+  `<section class="card" style="padding:4px 8px"><div class="scroll"><table class="pq">
+    <thead><tr><th>วันที่</th><th>รายการ</th><th>สาขา</th><th>เอกสาร</th><th class="n">ราคาทุน</th><th>หมวดแนะนำ</th><th></th></tr></thead>
+    <tbody>${rows.map(p => `<tr>
+      <td style="white-space:nowrap">${thDate(p.acqDate)}</td>
+      <td>${esc(p.name)}${p.cost < state.threshold ? '<span class="ex" style="color:var(--warn)">ต่ำกว่าเกณฑ์</span>' : ''}<div class="note">${esc(p.vendor||'')}${p.accName ? ' · ' + esc(p.accName) : ''}</div></td>
+      <td>${esc(p.branch||'')}</td>
+      <td class="code" style="font-weight:500">${(p.refs||[]).map(esc).join('<br>')}</td>
+      <td class="n">${fmt(p.cost)}</td>
+      <td><span class="code">${esc(p.cat||'')}</span></td>
+      <td><div class="acts"><button class="btn sm pri" data-reg="${p.pid}">ขึ้นทะเบียน</button><button class="btn sm" data-rej="${p.pid}">ไม่ขึ้นทะเบียน</button></div></td></tr>`).join('')}</tbody>
+  </table></div></section>`}
+  ${rej.length ? `<section class="card"><h2>ไม่ขึ้นทะเบียน (${rej.length})</h2><div class="scroll"><table>
+    <thead><tr><th>รายการ</th><th>เอกสาร</th><th class="n">จำนวนเงิน</th><th>เหตุผล</th><th></th></tr></thead>
+    <tbody>${rej.map(p => `<tr><td>${esc(p.name)}<div class="note">${esc(p.branch||'')}</div></td><td class="code" style="font-weight:500">${(p.refs||[]).map(esc).join(', ')}</td><td class="n">${fmt(p.cost)}</td><td>${esc(p.rejReason)}<div class="note">${thDate(p.rejDate)}</div></td><td><button class="btn sm" data-unrej="${p.pid}">นำกลับเข้าคิว</button></td></tr>`).join('')}</tbody>
+  </table></div></section>` : ''}`;
+}
+function dPendingNew(){
+  const head = `<div style="font-weight:600;font-size:18px">เพิ่มรายการรอขึ้นทะเบียน</div><div class="note">ยังไม่ออกรหัส จะออกรหัสเมื่อกดขึ้นทะเบียน</div>`;
+  const body = `<div class="grid2">
+    <label class="f" style="grid-column:1/-1">รายการ<input id="p-name" placeholder="เช่น ตู้แช่ 2 ประตู สาขาสีลม"></label>
+    <label class="f">หมวดที่แนะนำ<select id="p-cat">${state.cats.map(c=>`<option value="${c.code}">${c.code} · ${esc(c.name)}</option>`).join('')}</select></label>
+    <label class="f">วันที่ได้มา<input type="date" id="p-date" value="${today}"></label>
+    <label class="f">สาขา / ที่ตั้ง<input id="p-branch" list="branchlist2"><datalist id="branchlist2">${state.branches.map(b=>`<option value="${esc(b)}">`).join('')}</datalist></label>
+    <label class="f">ราคาทุน (บาท ไม่รวม VAT)<input type="number" id="p-cost" min="0" step="0.01"></label>
+    <label class="f">ผู้ขาย<input id="p-vendor"></label>
+    <label class="f">เลขที่เอกสาร (AP / PV / ใบกำกับ)<input id="p-ref"></label>
+    <label class="f" style="grid-column:1/-1">หมายเหตุ<textarea id="p-note" rows="2"></textarea></label></div>`;
+  return [head, body, `<button class="btn" data-act="close-drawer">ยกเลิก</button><button class="btn pri" data-act="save-pending">เพิ่มเข้าคิว</button>`];
+}
+function savePending(){
+  const name = $('#p-name').value.trim(), cost = parseFloat($('#p-cost').value);
+  if (!name) return toast('กรอกรายการ');
+  if (!(cost > 0)) return toast('ราคาทุนต้องมากกว่า 0');
+  const ref = $('#p-ref').value.trim();
+  state.pqseq = (state.pqseq || 0) + 1;
+  PQ().push({pid:'m' + Date.now().toString(36) + state.pqseq, cat:$('#p-cat').value, name, acqDate:$('#p-date').value || today, branch:addBranch($('#p-branch').value),
+    cost, vendor:$('#p-vendor').value.trim(), invoice:'', refs: ref ? [ref] : [], note:$('#p-note').value.trim()});
+  save(); closeDrawer(); state.view = 'pending'; render(); toast('เพิ่มเข้าคิวรอขึ้นทะเบียนแล้ว');
+}
+
 /* ---------- import / backup ---------- */
 async function importFile(file){
   let data;
   try { data = JSON.parse(await file.text()); } catch(e){ return toast('อ่านไฟล์ไม่ได้ ต้องเป็นไฟล์ .json'); }
   if (data && data.format === 'fa-register-import' && Array.isArray(data.assets)){
-    if (state.assets.length && !confirm('แทนที่ข้อมูลเดิมในเครื่องนี้ ' + state.assets.length + ' รายการ ด้วยข้อมูลจากไฟล์?')) return;
-    TR = data.assets; TR_SKIPPED = Array.isArray(data.skipped) ? data.skipped : [];
-    state = seed(); save(); render(); toast('นำเข้า ' + state.assets.length + ' รายการแล้ว');
+    const incoming = Array.isArray(data.pending) ? data.pending : [];
+    if (state.assets.length || PQ().length){
+      const seen = new Set(); state.assets.forEach(a => (a.refs||[]).forEach(r => seen.add(r)));
+      PQ().concat(state.rejected||[]).forEach(p => (p.refs||[]).forEach(r => seen.add(r)));
+      const fresh = incoming.filter(p => !(p.refs||[]).some(r => seen.has(r)));
+      fresh.forEach(p => { p.pid = 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); });
+      PQ().push(...fresh); save(); render();
+      return toast(fresh.length ? 'เพิ่มรายการใหม่เข้าคิวรอขึ้นทะเบียน ' + fresh.length + ' รายการ' : 'ไม่มีรายการใหม่ ทุกเอกสารในไฟล์มีอยู่แล้ว');
+    }
+    TR = data.assets; TR_SKIPPED = Array.isArray(data.skipped) ? data.skipped : []; TR_PENDING = incoming;
+    state = seed(); save(); render(); toast('นำเข้า ' + state.assets.length + ' รายการ และรอขึ้นทะเบียน ' + PQ().length + ' รายการ');
   } else if (data && data.format === 'fa-register-backup' && data.state && Array.isArray(data.state.assets)){
     if (state.assets.length && !confirm('แทนที่ข้อมูลเดิมในเครื่องนี้ด้วยไฟล์สำรอง?')) return;
     state = data.state; save(); render(); toast('กู้คืนจากไฟล์สำรอง ' + state.assets.length + ' รายการแล้ว');
@@ -863,6 +960,10 @@ document.addEventListener('click', e => {
   const fc = e.target.closest('[data-fcat]'); if (fc){ ui.fcat = fc.dataset.fcat; ui.limit = 48; render(); return; }
   const gc = e.target.closest('[data-gocat]'); if (gc){ ui.fcat = gc.dataset.gocat; ui.fbranch = ''; ui.q=''; ui.fstatus=''; ui.limit = 48; state.view = 'register'; render(); window.scrollTo(0,0); return; }
   const gb = e.target.closest('[data-gobranch]'); if (gb){ ui.fbranch = gb.dataset.gobranch; ui.fcat = ''; ui.q=''; ui.fstatus=''; ui.limit = 48; state.view = 'register'; render(); window.scrollTo(0,0); return; }
+  const gv = e.target.closest('[data-goview]'); if (gv){ state.view = gv.dataset.goview; save(); render(); window.scrollTo(0,0); return; }
+  const rg = e.target.closest('[data-reg]'); if (rg){ drawer = {mode:'form', id:null, pending:[], from:rg.dataset.reg}; renderDrawer(); updForm(); return; }
+  const rj = e.target.closest('[data-rej]'); if (rj){ rejectPending(rj.dataset.rej); return; }
+  const ub = e.target.closest('[data-unrej]'); if (ub){ const i = state.rejected.findIndex(p=>p.pid===ub.dataset.unrej); if (i>=0){ const p = state.rejected.splice(i,1)[0]; delete p.rejReason; delete p.rejDate; state.pending.push(p); save(); render(); toast('นำกลับเข้าคิวแล้ว'); } return; }
   const md = e.target.closest('[data-mode]'); if (md){ ui.mode = md.dataset.mode; render(); return; }
   const tr = e.target.closest('[data-open]'); if (tr){ openDrawer('detail', tr.dataset.open); return; }
   const pp = e.target.closest('[data-primary]'); if (pp && drawer){ const a = cur(); a.photos.forEach(p => p.primary = p.id === pp.dataset.primary); save(); renderDrawer(); render(); return; }
@@ -872,6 +973,8 @@ document.addEventListener('click', e => {
   const act = b.dataset.act;
   if (act === 'close-drawer') closeDrawer();
   else if (act === 'new') openDrawer('form', null);
+  else if (act === 'new-pending') { drawer = {mode:'pnew', id:null, pending:[]}; renderDrawer(); }
+  else if (act === 'save-pending') savePending();
   else if (act === 'edit') { drawer.mode = 'form'; renderDrawer(); }
   else if (act === 'transfer') { drawer.mode = 'transfer'; renderDrawer(); }
   else if (act === 'dispose') { drawer.mode = 'dispose'; renderDrawer(); updDispose(); }
@@ -883,7 +986,7 @@ document.addEventListener('click', e => {
   else if (act === 'do-capitalize') doCapitalize();
   else if (act === 'more') { ui.limit += 48; render(); }
   else if (act === 'close') { const ym = ui.month; state.closed = state.closed.includes(ym) ? state.closed.filter(x=>x!==ym) : state.closed.concat(ym); save(); render(); toast(state.closed.includes(ym) ? 'ปิดงวด '+thMonth(ym)+' แล้ว' : 'เปิดงวดอีกครั้ง'); }
-  else if (act === 'reset') { if (!ui.resetArmed){ ui.resetArmed = true; render(); return; } TR = []; TR_SKIPPED = []; state = seed(); state.view = 'settings'; ui.resetArmed = false; save(); render(); toast('ล้างข้อมูลในเครื่องนี้แล้ว'); }
+  else if (act === 'reset') { if (!ui.resetArmed){ ui.resetArmed = true; render(); return; } TR = []; TR_SKIPPED = []; TR_PENDING = []; state = seed(); state.view = 'settings'; ui.resetArmed = false; save(); render(); toast('ล้างข้อมูลในเครื่องนี้แล้ว'); }
   else if (act === 'printer') togglePrinter();
   else if (act === 'print-one') { const n = Math.max(1, Math.min(50, parseInt($('#copies').value,10) || 1)); printAssets(Array(n).fill(cur())); }
   else if (act === 'print-filtered') { const rows = filtered(); if (rows.length > 20 && !confirm('พิมพ์ป้าย ' + rows.length + ' ดวง?')) return; printAssets(rows); }
@@ -897,6 +1000,7 @@ document.addEventListener('keydown', e => {
 document.addEventListener('input', e => {
   const t = e.target;
   if (t.id === 'asof' && t.value){ ui.asOf = t.value; render(); }
+  else if (t.id === 'pq-q'){ ui.pq = t.value; const pos = t.selectionStart; render(); const q = $('#pq-q'); q.focus(); try{ q.setSelectionRange(pos,pos); }catch(_){} }
   else if (t.id === 'q'){ ui.q = t.value; const pos = t.selectionStart; render(); const q = $('#q'); q.focus(); try{ q.setSelectionRange(pos,pos); }catch(_){} }
   else if (t.id === 'month' && t.value){ ui.month = t.value; render(); }
   else if (t.dataset.life !== undefined){ const v = parseInt(t.value,10); if (v > 0){ state.cats[+t.dataset.life].life = v; save(); } }
@@ -910,6 +1014,7 @@ document.addEventListener('change', async e => {
   if (t.id === 'fcat'){ ui.fcat = t.value; render(); }
   else if (t.id === 'fbranch'){ ui.fbranch = t.value; ui.limit = 48; render(); }
   else if (t.id === 'fstatus'){ ui.fstatus = t.value; render(); }
+  else if (t.id === 'pq-cat'){ ui.pqcat = t.value; render(); }
   else if (t.id === 'importfile' && t.files.length){ importFile(t.files[0]); t.value = ''; }
   else if (t.id === 'l-size'){ L().size = t.value; save(); }
   else if (t.id === 'l-type'){ L().type = +t.value; save(); }
@@ -955,7 +1060,7 @@ function saveForm(){
     save(); drawer.mode = 'detail'; drawer.pending = []; renderDrawer(); render(); toast('บันทึกการแก้ไขแล้ว');
   } else {
     const a = Object.assign({id:'a'+(++state.seq), code: nextCode(c, date), cat:c, status: cat(c).dep === false ? 'cip' : 'active', photos: drawer.pending, sample:false,
-      history:[{date: today, text:'ลงทะเบียนสินทรัพย์'}]}, fields);
+      history:[{date: today, text:'ลงทะเบียนสินทรัพย์'}]}, fields, linkPending());
     if (a.photos.length) a.photos[0].primary = true;
     state.assets.push(a);
     if (!save()){ state.assets.pop(); return; }
