@@ -13,7 +13,7 @@
   --accent:#1c6a56; --accent-ink:#ffffff; --accent-soft:#dfeee8;
   --good:#2b7a49; --warn:#9a5a12; --bad:#b03636; --warn-soft:#fbefdf; --bad-soft:#f9e4e4;
   --shadow:0 12px 40px rgba(20,40,34,.18);
-  --BD-bg:#e9eaec; --BD-fg:#4a4f57; --OF-bg:#fbe3d3; --OF-fg:#a2521c; --FF-bg:#dcefd3; --FF-fg:#3d7a2a; --KT-bg:#d8e9f8; --KT-fg:#23639e; --VH-bg:#dce6ea; --VH-fg:#3f5f6b; --SW-bg:#e8def5; --SW-fg:#6a4a9a; --CP-bg:#f8dcdc; --CP-fg:#a33a3a;
+  --BD-bg:#e9eaec; --BD-fg:#4a4f57; --OF-bg:#fbe3d3; --OF-fg:#a2521c; --FF-bg:#dcefd3; --FF-fg:#3d7a2a; --KT-bg:#d8e9f8; --KT-fg:#23639e; --VH-bg:#dce6ea; --VH-fg:#3f5f6b; --SW-bg:#e8def5; --SW-fg:#6a4a9a; --CP-bg:#f8dcdc; --CP-fg:#a33a3a; --CS-bg:#f4ecd0; --CS-fg:#7a6212;
   --f-body:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
 }
@@ -21,12 +21,12 @@
   --bg:#0e1412; --surface:#151d1a; --sunk:#1b2521; --ink:#e4ebe8; --muted:#97a6a0; --line:#2a3632;
   --accent:#62c2a2; --accent-ink:#0b1a15; --accent-soft:#1c3029;
   --good:#7fd09c; --warn:#e3a764; --bad:#f08c8c; --warn-soft:#33281a; --bad-soft:#3a2020;
-  --shadow:0 12px 40px rgba(0,0,0,.5); --BD-bg:#262a30; --BD-fg:#c3c8d0; --OF-bg:#3a2a1f; --OF-fg:#f2b48a; --FF-bg:#22331d; --FF-fg:#a8d898; --KT-bg:#1c2b3a; --KT-fg:#9cc8f0; --VH-bg:#1f2b30; --VH-fg:#a9c5cf; --SW-bg:#2c2438; --SW-fg:#c9b2ef; --CP-bg:#3a2222; --CP-fg:#f0a3a3; color-scheme:dark}}
+  --shadow:0 12px 40px rgba(0,0,0,.5); --BD-bg:#262a30; --BD-fg:#c3c8d0; --OF-bg:#3a2a1f; --OF-fg:#f2b48a; --FF-bg:#22331d; --FF-fg:#a8d898; --KT-bg:#1c2b3a; --KT-fg:#9cc8f0; --VH-bg:#1f2b30; --VH-fg:#a9c5cf; --SW-bg:#2c2438; --SW-fg:#c9b2ef; --CP-bg:#3a2222; --CP-fg:#f0a3a3; --CS-bg:#33301c; --CS-fg:#e3d08a; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0e1412; --surface:#151d1a; --sunk:#1b2521; --ink:#e4ebe8; --muted:#97a6a0; --line:#2a3632;
   --accent:#62c2a2; --accent-ink:#0b1a15; --accent-soft:#1c3029;
   --good:#7fd09c; --warn:#e3a764; --bad:#f08c8c; --warn-soft:#33281a; --bad-soft:#3a2020;
-  --shadow:0 12px 40px rgba(0,0,0,.5); --BD-bg:#262a30; --BD-fg:#c3c8d0; --OF-bg:#3a2a1f; --OF-fg:#f2b48a; --FF-bg:#22331d; --FF-fg:#a8d898; --KT-bg:#1c2b3a; --KT-fg:#9cc8f0; --VH-bg:#1f2b30; --VH-fg:#a9c5cf; --SW-bg:#2c2438; --SW-fg:#c9b2ef; --CP-bg:#3a2222; --CP-fg:#f0a3a3; color-scheme:dark}
+  --shadow:0 12px 40px rgba(0,0,0,.5); --BD-bg:#262a30; --BD-fg:#c3c8d0; --OF-bg:#3a2a1f; --OF-fg:#f2b48a; --FF-bg:#22331d; --FF-fg:#a8d898; --KT-bg:#1c2b3a; --KT-fg:#9cc8f0; --VH-bg:#1f2b30; --VH-fg:#a9c5cf; --SW-bg:#2c2438; --SW-fg:#c9b2ef; --CP-bg:#3a2222; --CP-fg:#f0a3a3; --CS-bg:#33301c; --CS-fg:#e3d08a; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
@@ -217,7 +217,8 @@ const DEFAULT_CATS = [
   {code:'KT', acc:'1704000', name:'เครื่องมือเครื่องใช้ในครัว', life:5, dep:true},
   {code:'VH', acc:'1706000', name:'ยานพาหนะ', life:5, dep:true},
   {code:'SW', acc:'1801000', name:'ซอฟต์แวร์และแอปพลิเคชั่น', life:3, dep:true},
-  {code:'CP', acc:'1707000', name:'งานระหว่างก่อสร้าง', life:0, dep:false}
+  {code:'CP', acc:'1707000', name:'งานระหว่างก่อสร้าง', life:0, dep:false},
+  {code:'CS', acc:'1306000', name:'วัสดุสิ้นเปลือง', life:0, dep:false, supply:true}
 ];
 
 let TR = [];
@@ -234,6 +235,8 @@ function seed(){
 function load(){ try{ const s = localStorage.getItem(STORE); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
 let state = null;
 state = load() || seed();
+DEFAULT_CATS.forEach(c => { if (!state.cats.some(x => x.code === c.code)) state.cats.push(JSON.parse(JSON.stringify(c))); });
+state.cats.forEach(c => { const d = DEFAULT_CATS.find(x => x.code === c.code); if (d && d.supply) c.supply = true; });
 function save(){ try{ localStorage.setItem(STORE, JSON.stringify(state)); return true; }catch(e){ toast('บันทึกในเบราว์เซอร์ไม่ได้ พื้นที่อาจเต็ม ลองลบรูปบางรูป'); return false; } }
 
 /* ---------- utils ---------- */
@@ -285,6 +288,7 @@ function statusOf(a, d=today){
   if (a.status === 'disposed') return ['จำหน่ายแล้ว','p-off'];
   if (a.status === 'transferred') return ['โอนเป็นสินทรัพย์แล้ว','p-off'];
   if (a.status === 'cip') return ['ระหว่างก่อสร้าง','p-cip'];
+  if (isSup(a)) return ['วัสดุสิ้นเปลือง','p-active'];
   if (depreciable(a) && accDep(a, d) >= r2(a.cost - a.salvage)) return ['ค่าเสื่อมครบแล้ว','p-full'];
   return ['ใช้งาน','p-active'];
 }
@@ -342,7 +346,15 @@ const ICON_RULES = [
  ['sign', /ป้าย|กล่องไฟ|led/i], ['steel', /ซิงค์|สแตนเลส|สเตนเลส|ถัง|รถเข็น|ชั้นวาง|โต๊ะ|บันได/i],
  ['machine', /เครื่องจักร|ขนม|กวน|กระป๋อง|ฝุ่น|vacuum|เป่ามือ/i], ['building', /ปรับปรุง|รั้ว|พื้น|ไฟฟ้า|หลอดไฟ|โกดัง/i]
 ];
-const CAT_ICON = {BD:'building', OF:'box', FF:'lamp', KT:'pot', VH:'truck', SW:'app', CP:'crane'};
+const CAT_ICON = {BD:'building', OF:'box', FF:'lamp', KT:'pot', VH:'truck', SW:'app', CP:'crane', CS:'box'};
+const isSup = a => !!cat(a.cat).supply;
+const codeText = a => a.docNo && (+a.seqTo||0) > (+a.seqFrom||0) ? a.code + '–' + pad(a.seqTo, 4) : a.code;
+const pieceFrom = doc => { let m = 0; state.assets.forEach(a => { if (a.docNo === doc) m = Math.max(m, +a.seqTo || +a.seqFrom || 0); }); return m + 1; };
+const supCode = (doc, qty) => { const f = pieceFrom(doc), t = f + Math.max(1, qty) - 1; return {code: doc + '/' + pad(f, 4), seqFrom: f, seqTo: t, text: doc + '/' + pad(f, 4) + (t > f ? '–' + pad(t, 4) : '')}; };
+const pieces = a => a.docNo ? Array.from({length: Math.max(1, (+a.seqTo||0) - (+a.seqFrom||0) + 1)}, (_, i) => Object.assign({}, a, {code: a.docNo + '/' + pad((+a.seqFrom||1) + i, 4)})) : [a];
+const unitCost = a => (+a.cost || 0) / Math.max(1, +a.qty || 1);
+const qtyText = a => (+a.qty || 1) > 1 || isSup(a) ? `${(+a.qty||1).toLocaleString('th-TH')} ${a.unit || 'ชิ้น'}` : '';
+const lowVal = a => cat(a.cat).dep !== false && unitCost(a) < state.threshold;
 const iconKey = a => { for (const [k, re] of ICON_RULES) if (re.test(a.name)) return k; return CAT_ICON[a.cat] || 'box'; };
 const svg = k => `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]}</svg>`;
 const tint = c => `background:var(--${c}-bg);color:var(--${c}-fg)`;
@@ -353,25 +365,27 @@ function artHtml(a, cls=''){
 function cardHtml(a){
   const [s, cls] = statusOf(a);
   return `<button class="acard" data-open="${a.id}">
-    <div style="position:relative">${artHtml(a)}      <span class="tag" style="position:absolute;top:10px;left:10px;font-family:var(--f-mono);font-weight:600;font-size:12.5px;background:var(--surface);color:var(--ink);padding:3px 8px;border-radius:6px">${esc(a.code)}</span>
+    <div style="position:relative">${artHtml(a)}      <span class="tag" style="position:absolute;top:10px;left:10px;font-family:var(--f-mono);font-weight:600;font-size:12.5px;background:var(--surface);color:var(--ink);padding:3px 8px;border-radius:6px">${esc(codeText(a))}</span>
       ${cls!=='p-active'?`<span class="pill ${cls}" style="position:absolute;top:10px;right:10px">${s}</span>`:''}</div>
-    <div class="meta"><div class="nm">${esc(a.name)}</div><div class="br">${esc(a.branch)} · ${thDate(a.acqDate)}</div>
+    <div class="meta"><div class="nm">${esc(a.name)}${qtyText(a)?` <span class="note">× ${esc(qtyText(a))}</span>`:''}</div><div class="br">${esc(a.branch)} · ${thDate(a.acqDate)}</div>
       <div class="mrow"><small>ราคาทุน</small><b>${fmt(a.cost)}</b></div>
-      <div class="mrow" style="border:0;padding:0;margin:0"><small>มูลค่าสุทธิวันนี้</small><b>${fmt(nbv(a,today))}</b></div></div></button>`;
+      ${isSup(a) ? `<div class="mrow" style="border:0;padding:0;margin:0"><small>คงเหลือ${(a.counts||[]).length?'ตามผลนับ':''}</small><b>${((a.counts||[]).length ? a.counts[a.counts.length-1].qty : (+a.qty||1)).toLocaleString('th-TH')} ${esc(a.unit||'ชิ้น')}</b></div>` : `<div class="mrow" style="border:0;padding:0;margin:0"><small>มูลค่าสุทธิวันนี้</small><b>${fmt(nbv(a,today))}</b></div>`}</div></button>`;
 }
 
 
 function vOverview(){
   const d = ui.asOf;
-  const live = state.assets.filter(a => onBooks(a, d));
+  const allLive = state.assets.filter(a => onBooks(a, d));
+  const live = allLive.filter(a => !isSup(a)), sup = allLive.filter(isSup);
+  const supCost = sup.reduce((x,a)=>x+a.cost,0), supQty = sup.reduce((x,a)=>x+(+a.qty||1),0);
   const cost = live.reduce((s,a)=>s+a.cost,0), acc = live.reduce((s,a)=>s+accDep(a,d),0);
-  const byCat = state.cats.map(c => { const xs = live.filter(a => a.cat === c.code);
+  const byCat = state.cats.filter(c => !c.supply).map(c => { const xs = live.filter(a => a.cat === c.code);
     return {c, n:xs.length, cost:xs.reduce((s,a)=>s+a.cost,0), acc:xs.reduce((s,a)=>s+accDep(a,d),0)}; });
   const maxCat = Math.max(1, ...byCat.map(r=>r.cost));
   const brMap = {}; live.forEach(a => { (brMap[a.branch] = brMap[a.branch] || {n:0, cost:0}); brMap[a.branch].n++; brMap[a.branch].cost += a.cost; });
   const brs = Object.entries(brMap).sort((x,y)=>y[1].cost-x[1].cost).slice(0,8); const maxBr = brs.length ? brs[0][1].cost : 1;
   const noPhoto = live.filter(a => !a.photos.length).length;
-  const under = live.filter(a=>a.cost<state.threshold&&a.cat!=='CP').length;
+  const under = live.filter(lowVal).length;
   const full = live.filter(a => statusOf(a,d)[0] === 'ค่าเสื่อมครบแล้ว').length;
   const thisMonth = state.assets.reduce((s,a)=>s + r2(accDep(a, monthEnd(d.slice(0,7))) - accDep(a, prevMonthEnd(d.slice(0,7)))),0);
   const recent = state.assets.slice().sort((x,y)=>y.acqDate.localeCompare(x.acqDate)||y.code.localeCompare(x.code)).slice(0,4);
@@ -396,6 +410,7 @@ function vOverview(){
     </div></section>
     <section class="card"><h2>เรื่องที่ต้องดู</h2>
       ${PQ().length?`<div class="alert"><span>รอขึ้นทะเบียน</span><b><button class="btn sm" data-goview="pending">${PQ().length} รายการ</button></b></div>`:''}
+      ${sup.length?`<div class="alert"><span>วัสดุสิ้นเปลือง (ไม่รวมในยอดสินทรัพย์)</span><b><button class="btn sm" data-gocat="CS">${sup.length} รายการ · ${supQty.toLocaleString('th-TH')} ชิ้น · ${fmt(supCost)} บาท</button></b></div>`:''}
       <div class="alert"><span>ยังไม่มีรูปถ่ายจริง</span><b>${noPhoto} ชิ้น</b></div>
       <div class="alert"><span>ราคาต่ำกว่าเกณฑ์ ${fmt(state.threshold)} บาท</span><b>${under} ชิ้น</b></div>
       <div class="alert"><span>ค่าเสื่อมครบแล้วแต่ยังใช้งาน</span><b>${full} ชิ้น</b></div>
@@ -439,7 +454,7 @@ function vRegister(){
   return `
   <div class="spread"><div><h1>ทะเบียนสินทรัพย์</h1><p class="sub">${rows.length} ชิ้น · ราคาทุน ${fmt(total)} บาท · คลิกการ์ดเพื่อดูรายละเอียด รูป และป้าย QR</p></div>
     <div class="row"><div class="seg" role="group" aria-label="มุมมอง"><button data-mode="card" aria-pressed="${ui.mode==='card'}">การ์ด</button><button data-mode="table" aria-pressed="${ui.mode==='table'}">ตาราง</button></div>
-    <button class="btn" data-act="print-filtered" ${rows.length?'':'disabled'}>พิมพ์ป้าย ${rows.length} ชิ้น</button><button class="btn pri" data-act="new">+ เพิ่มสินทรัพย์</button></div></div>
+    <button class="btn" data-act="print-filtered" ${rows.length?'':'disabled'}>พิมพ์ป้าย ${rows.reduce((x,a)=>x+pieces(a).length,0).toLocaleString('th-TH')} ดวง</button><button class="btn pri" data-act="new">+ เพิ่มสินทรัพย์</button></div></div>
   <div class="chips">
     <button class="chip" data-fcat="" aria-pressed="${!ui.fcat}"><span class="ic" style="background:var(--sunk)">${svg('box')}</span>ทั้งหมด <b>${state.assets.length}</b></button>
     ${state.cats.filter(c=>counts[c.code]).map(c=>`<button class="chip" data-fcat="${c.code}" aria-pressed="${ui.fcat===c.code}"><span class="ic" style="${tint(c.code)}">${svg(CAT_ICON[c.code])}</span>${esc(c.name)} <b>${counts[c.code]}</b></button>`).join('')}
@@ -454,8 +469,8 @@ function vRegister(){
   `<section class="card" style="padding:4px 8px"><div class="scroll"><table>
     <thead><tr><th></th><th>รหัสทรัพย์สิน</th><th>ชื่อสินทรัพย์</th><th>สาขา</th><th>วันที่ได้มา</th><th class="n">ราคาทุน</th><th class="n">มูลค่าสุทธิวันนี้</th><th>สถานะ</th></tr></thead>
     <tbody>${shown.map(a => { const [s,cls] = statusOf(a); return `<tr class="click" data-open="${a.id}" tabindex="0">
-      <td>${thumbHtml(a)}</td><td class="code">${esc(a.code)}</td>
-      <td>${esc(a.name)}${a.cost<state.threshold&&a.cat!=='CP'?'<span class="ex" style="color:var(--warn)">ต่ำกว่าเกณฑ์</span>':''}<div class="note">${esc(cat(a.cat).name)}</div></td>
+      <td>${thumbHtml(a)}</td><td class="code">${esc(codeText(a))}</td>
+      <td>${esc(a.name)}${qtyText(a)?` <span class="note">× ${esc(qtyText(a))}</span>`:''}${lowVal(a)?'<span class="ex" style="color:var(--warn)">ต่ำกว่าเกณฑ์</span>':''}<div class="note">${esc(cat(a.cat).name)}</div></td>
       <td>${esc(a.branch)}</td><td style="white-space:nowrap">${thDate(a.acqDate)}</td>
       <td class="n">${fmt(a.cost)}</td><td class="n">${fmt(nbv(a,today))}</td><td><span class="pill ${cls}">${s}</span></td></tr>`; }).join('')}</tbody>
   </table></div></section>`}
@@ -496,7 +511,7 @@ function vSettings(){
   <div><h1>ตั้งค่า</h1><p class="sub">หมวดและรหัสบัญชีตามกลุ่มทรัพย์สินในงบการเงิน อายุการใช้งานเป็นค่าเริ่มต้นเมื่อเพิ่มสินทรัพย์ใหม่</p></div>
   <section class="card" style="padding:4px 8px"><div class="scroll"><table>
     <thead><tr><th>หมวด</th><th>รหัสบัญชี</th><th>ชื่อบัญชี</th><th>คิดค่าเสื่อม</th><th class="n">อายุใช้งาน (ปี)</th><th class="n">ตัวอย่างรหัสถัดไป</th></tr></thead>
-    <tbody>${state.cats.map((c,i)=>`<tr><td class="code">${c.code}</td><td class="code" style="font-weight:500">${c.acc}</td><td>${esc(c.name)}</td><td>${c.dep===false?'ไม่คิด':'เส้นตรง'}</td>
+    <tbody>${state.cats.map((c,i)=>`<tr><td class="code">${c.code}</td><td class="code" style="font-weight:500">${c.acc}</td><td>${esc(c.name)}</td><td>${c.supply?'ไม่คิด · ตัดจ่ายตามผลนับสิ้นปี':c.dep===false?'ไม่คิด':'เส้นตรง'}</td>
       <td class="n">${c.dep===false?'–':`<input type="number" min="1" max="50" step="1" style="width:80px;text-align:right" id="life-${c.code}" data-life="${i}" value="${c.life}">`}</td>
       <td class="n code">${nextCode(c.code, today)}</td></tr>`).join('')}</tbody>
   </table></div></section>
@@ -561,7 +576,7 @@ function dDetail(a){
   const sch = schedule(a);
   const accNow = accDep(a, today);
   const annual = depreciable(a) ? r2((a.cost - a.salvage)/a.life) : 0;
-  const head = `<div class="bigcode">${esc(a.code)}</div><div style="font-weight:500">${esc(a.name)}</div>
+  const head = `<div class="bigcode">${esc(codeText(a))}</div><div style="font-weight:500">${esc(a.name)}</div>
     <div style="margin-top:6px"><span class="pill ${cls}">${s}</span>${a.src==='trcloud'?'<span class="ex">นำเข้าจาก TRCloud</span>':''}</div>`;
   const body = `
   <section class="gallery">
@@ -578,6 +593,7 @@ function dDetail(a){
     <div><dt>เลขที่ใบกำกับภาษี</dt><dd>${esc(a.invoice)||'–'}</dd></div>
     <div><dt>วันที่ได้มา / พร้อมใช้</dt><dd>${thDate(a.acqDate)}</dd></div>
     <div><dt>ราคาทุน</dt><dd>${fmt(a.cost)} บาท</dd></div>
+    ${qtyText(a)?`<div><dt>จำนวน</dt><dd>${esc(qtyText(a))} · ราคาต่อหน่วย ${fmt(unitCost(a))} บาท</dd></div>`:''}
     <div><dt>มูลค่าซาก</dt><dd>${fmt(a.salvage)} บาท</dd></div>
     <div><dt>อายุการใช้งาน</dt><dd>${depreciable(a)?a.life+' ปี · '+(r2(100/a.life))+'% ต่อปี':'ไม่คิดค่าเสื่อม'}</dd></div>
     ${a.refs?`<div><dt>เอกสารใน TRCloud</dt><dd class="code" style="font-weight:500">${a.refs.map(esc).join(', ')}${a.po?' · '+esc(a.po):''}</dd></div>`:''}
@@ -598,9 +614,12 @@ function dDetail(a){
     <tbody>${sch.map(r=>`<tr><td>${r.y} (พ.ศ. ${r.y+543})</td><td class="n">${fmt(r.dep)}</td><td class="n">${fmt(r.acc)}</td><td class="n">${fmt(r.nbv)}</td></tr>`).join('')}</tbody>
   </table></div></section>`:''}
   <section><h3>ป้ายติดสินทรัพย์</h3>
-    <canvas class="lblprev" id="lblprev" width="400" height="240" aria-label="ตัวอย่างป้าย ${esc(a.code)}"></canvas>
-    <div class="prrow"><label class="f">จำนวนดวง<input type="number" id="copies" min="1" max="50" value="1"></label><button class="btn pri" data-act="print-one">พิมพ์ป้าย</button></div>
+    <canvas class="lblprev" id="lblprev" width="400" height="240" aria-label="ตัวอย่างป้าย ${esc(codeText(a))}"></canvas>
+    <div class="prrow">${a.docNo ? `<span class="note" style="align-self:center">${pieces(a).length} ดวง รหัส ${esc(codeText(a))}</span>` : `<label class="f">จำนวนดวง<input type="number" id="copies" min="1" max="200" value="${Math.min(200, +a.qty || 1)}"></label>`}<button class="btn pri" data-act="print-one">พิมพ์ป้าย</button></div>
     <p class="note" style="margin:8px 0 0">ภาพนี้คือสิ่งที่จะพิมพ์จริง ขนาด ${labelSizeText()} ตั้งขนาดได้ในหน้าตั้งค่า</p></section>
+  ${isSup(a)?`<section><h3>ตรวจนับวัสดุสิ้นเปลือง</h3>
+    <p class="note" style="margin:0 0 8px">ไม่คิดค่าเสื่อม ตัดเป็นค่าใช้จ่ายตามผลตรวจนับสิ้นปี ${(a.counts||[]).length?`· นับล่าสุด ${thDate(a.counts[a.counts.length-1].date)} เหลือ ${a.counts[a.counts.length-1].qty.toLocaleString('th-TH')} ${esc(a.unit||'ชิ้น')} (ใช้ไป ${((+a.qty||1)-a.counts[a.counts.length-1].qty).toLocaleString('th-TH')} มูลค่า ${fmt(((+a.qty||1)-a.counts[a.counts.length-1].qty)*unitCost(a))} บาท)`:''}</p>
+    <div class="prrow"><label class="f">คงเหลือที่นับได้<input type="number" id="cnt-qty" min="0" step="1" value="${(a.counts||[]).length?a.counts[a.counts.length-1].qty:(+a.qty||1)}"></label><label class="f" style="width:160px">วันที่นับ<input type="date" id="cnt-date" value="${today}"></label><button class="btn" data-act="count">บันทึกผลนับ</button></div></section>`:''}
   <section><h3>ประวัติ</h3><ul class="hist">${a.history.map(h=>`<li><span>${thDate(h.date)}</span><span>${esc(h.text)}</span></li>`).join('')}</ul></section>`;
   const active = a.status === 'active', cip = a.status === 'cip';
   const foot = `${active||cip?`<button class="btn" data-act="edit">แก้ไข</button><button class="btn" data-act="transfer">โอนย้าย</button>`:''}
@@ -621,8 +640,11 @@ function dForm(a){
     <label class="f">ผู้ดูแล<input id="f-cust" value="${esc(v.custodian)}" placeholder="ชื่อหรือตำแหน่ง"></label>
     <label class="f">ผู้ขาย<input id="f-vendor" value="${esc(v.vendor)}"></label>
     <label class="f">เลขที่ใบกำกับภาษี<input id="f-inv" value="${esc(v.invoice)}"></label>
+    <label class="f" id="f-docwrap" ${cat(v.cat).supply&&isNew?'':'hidden'}>เลขที่เอกสาร AP / EXP (ใช้ตั้งรหัส)<input id="f-doc" value="${esc(v.docNo||'')}" placeholder="เช่น AP2601000001" style="text-transform:uppercase"></label>
     <label class="f">ราคาทุน (บาท ไม่รวม VAT)<input type="number" id="f-cost" min="0" step="0.01" value="${v.cost}" required></label>
     <label class="f">มูลค่าซาก (บาท)<input type="number" id="f-salv" min="0" step="0.01" value="${v.salvage}"></label>
+    <label class="f">จำนวน<input type="number" id="f-qty" min="1" step="1" value="${v.qty||1}"></label>
+    <label class="f">หน่วย<input id="f-unit" list="unitlist" value="${esc(v.unit||'ชิ้น')}"><datalist id="unitlist">${['ชิ้น','ตัว','เครื่อง','ชุด','ใบ','อัน','กล่อง','แพ็ค'].map(u=>`<option value="${u}">`).join('')}</datalist></label>
     <label class="f">อายุการใช้งาน (ปี)<input type="number" id="f-life" min="0" max="50" step="1" value="${v.life}"></label>
     <label class="f">รหัสเดิม (ถ้ามี)<input id="f-legacy" value="${esc(v.legacy)}"></label>
     <label class="f" style="grid-column:1/-1">หมายเหตุ<textarea id="f-note" rows="2">${esc(v.note)}</textarea></label>
@@ -635,7 +657,7 @@ function dForm(a){
   return [head, body, foot];
 }
 function dTransfer(a){
-  return [`<div class="bigcode">${esc(a.code)}</div><div>โอนย้ายสาขา / ผู้ดูแล</div>`,
+  return [`<div class="bigcode">${esc(codeText(a))}</div><div>โอนย้ายสาขา / ผู้ดูแล</div>`,
   `<div class="grid2">
     <label class="f">สาขาปลายทาง<select id="t-branch">${state.branches.map(b=>`<option ${a.branch===b?'selected':''}>${esc(b)}</option>`).join('')}</select></label>
     <label class="f">ผู้ดูแลใหม่<input id="t-cust" value="${esc(a.custodian)}"></label>
@@ -645,7 +667,7 @@ function dTransfer(a){
   `<button class="btn" data-act="back">ยกเลิก</button><button class="btn pri" data-act="do-transfer">บันทึกการโอน</button>`];
 }
 function dDispose(a){
-  return [`<div class="bigcode">${esc(a.code)}</div><div>จำหน่าย / ตัดบัญชี</div>`,
+  return [`<div class="bigcode">${esc(codeText(a))}</div><div>จำหน่าย / ตัดบัญชี</div>`,
   `<div class="grid2">
     <label class="f">วันที่จำหน่าย<input type="date" id="x-date" value="${today}"></label>
     <label class="f">วิธี<select id="x-kind"><option>ขาย</option><option>ตัดชำรุด / ทิ้ง</option><option>สูญหาย</option><option>บริจาค</option></select></label>
@@ -655,7 +677,7 @@ function dDispose(a){
   `<button class="btn" data-act="back">ยกเลิก</button><button class="btn pri" data-act="do-dispose">ยืนยันการจำหน่าย</button>`];
 }
 function dCapitalize(a){
-  return [`<div class="bigcode">${esc(a.code)}</div><div>โอนงานระหว่างก่อสร้างเข้าสินทรัพย์</div>`,
+  return [`<div class="bigcode">${esc(codeText(a))}</div><div>โอนงานระหว่างก่อสร้างเข้าสินทรัพย์</div>`,
   `<div class="grid2">
     <label class="f">หมวดปลายทาง<select id="c-cat">${state.cats.filter(c=>c.dep!==false).map(c=>`<option value="${c.code}">${c.code} · ${esc(c.name)}</option>`).join('')}</select></label>
     <label class="f">วันที่พร้อมใช้งาน<input type="date" id="c-date" value="${today}"></label>
@@ -773,7 +795,7 @@ function pagesFor(list){
 async function drawPreview(a){
   const cv = $('#lblprev'); if (!cv) return;
   await fontsReady([a]);
-  const src = pageCanvas(L().size === '50x30' ? [a] : [a, a]);
+  const pc = pieces(a); const src = pageCanvas(L().size === '50x30' ? [pc[0]] : [pc[0], pc[1] || pc[0]]);
   const ctx = cv.getContext('2d'); ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(src, 0, 0);
 }
 
@@ -812,7 +834,7 @@ async function togglePrinter(){
   await connectPrinter();
 }
 async function printAssets(list){
-  list = list.filter(Boolean);
+  list = list.filter(Boolean).flatMap(pieces);
   if (!list.length || PR.busy) return;
   if (!(PR.client && PR.client.isConnected()) && !(await connectPrinter())) return;
   const client = PR.client, lib = niimbluelib, cfg = L();
@@ -833,7 +855,7 @@ async function printAssets(list){
     }
     await task.waitForFinished();
     toast(`พิมพ์เสร็จ ${pages.length} แผ่น`);
-    new Set(list.filter(a => a.id && a.history)).forEach(a => a.history.push({date: today, text: 'พิมพ์ป้ายสินทรัพย์'}));
+    new Set(list.map(x => state.assets.find(a => a.id === x.id)).filter(a => a && a.history)).forEach(a => a.history.push({date: today, text: 'พิมพ์ป้ายสินทรัพย์'}));
     save();
   } catch(e){
     console.error(e); toast('พิมพ์ไม่สำเร็จ: ' + (e && e.message || e));
@@ -852,7 +874,8 @@ function fromPending(pid){
   const p = PQ().find(x => x.pid === pid); if (!p) return null;
   const c = state.cats.some(x => x.code === p.cat) ? p.cat : 'OF';
   return {cat:c, name:p.name, branch:p.branch, custodian:'', vendor:p.vendor||'', invoice:p.invoice||'', acqDate:p.acqDate||today, cost:p.cost||'',
-    salvage: cat(c).dep === false ? 0 : 1, life: cat(c).life, legacy:'', note: p.note || ''};
+    salvage: cat(c).dep === false ? 0 : 1, life: cat(c).life, legacy:'', note: p.note || '', qty: p.qty || 1, unit: p.unit || 'ชิ้น',
+    docNo: ((p.refs||[]).find(r => /^(AP|EXP)/i.test(r)) || (p.refs||[])[0] || '')};
 }
 function linkPending(){
   if (!drawer || !drawer.from) return {};
@@ -890,7 +913,7 @@ function vPending(){
     <thead><tr><th>วันที่</th><th>รายการ</th><th>สาขา</th><th>เอกสาร</th><th class="n">ราคาทุน</th><th>หมวดแนะนำ</th><th></th></tr></thead>
     <tbody>${rows.map(p => `<tr>
       <td style="white-space:nowrap">${thDate(p.acqDate)}</td>
-      <td>${esc(p.name)}${p.cost < state.threshold ? '<span class="ex" style="color:var(--warn)">ต่ำกว่าเกณฑ์</span>' : ''}<div class="note">${esc(p.vendor||'')}${p.accName ? ' · ' + esc(p.accName) : ''}</div></td>
+      <td>${esc(p.name)}${p.qty>1?` <span class="note">× ${p.qty} ${esc(p.unit||'ชิ้น')}</span>`:''}${p.cat!=='CS' && p.cost/(p.qty||1) < state.threshold ? '<span class="ex" style="color:var(--warn)">ต่ำกว่าเกณฑ์</span>' : ''}<div class="note">${esc(p.vendor||'')}${p.accName ? ' · ' + esc(p.accName) : ''}</div></td>
       <td>${esc(p.branch||'')}</td>
       <td class="code" style="font-weight:500">${(p.refs||[]).map(esc).join('<br>')}</td>
       <td class="n">${fmt(p.cost)}</td>
@@ -924,6 +947,16 @@ function savePending(){
   PQ().push({pid:'m' + Date.now().toString(36) + state.pqseq, cat:$('#p-cat').value, name, acqDate:$('#p-date').value || today, branch:addBranch($('#p-branch').value),
     cost, vendor:$('#p-vendor').value.trim(), invoice:'', refs: ref ? [ref] : [], note:$('#p-note').value.trim()});
   save(); closeDrawer(); state.view = 'pending'; render(); toast('เพิ่มเข้าคิวรอขึ้นทะเบียนแล้ว');
+}
+
+
+function saveCount(){
+  const a = cur(), q = parseInt($('#cnt-qty').value, 10), d = $('#cnt-date').value || today;
+  if (!(q >= 0)) return toast('กรอกจำนวนคงเหลือ');
+  a.counts = a.counts || []; a.counts.push({date: d, qty: q});
+  const used = (+a.qty || 1) - q;
+  a.history.push({date: d, text: `ตรวจนับคงเหลือ ${q} ${a.unit || 'ชิ้น'}` + (used > 0 ? ` ใช้ไป ${used} มูลค่า ${fmt(used * unitCost(a))} บาท` : '')});
+  save(); renderDrawer(); render(); toast('บันทึกผลนับแล้ว');
 }
 
 /* ---------- import / backup ---------- */
@@ -975,6 +1008,8 @@ document.addEventListener('click', e => {
   else if (act === 'new') openDrawer('form', null);
   else if (act === 'new-pending') { drawer = {mode:'pnew', id:null, pending:[]}; renderDrawer(); }
   else if (act === 'save-pending') savePending();
+  else if (act === 'to-cs') { const sel = $('#f-cat'); sel.value = 'CS'; sel.dispatchEvent(new Event('change', {bubbles:true})); }
+  else if (act === 'count') saveCount();
   else if (act === 'edit') { drawer.mode = 'form'; renderDrawer(); }
   else if (act === 'transfer') { drawer.mode = 'transfer'; renderDrawer(); }
   else if (act === 'dispose') { drawer.mode = 'dispose'; renderDrawer(); updDispose(); }
@@ -988,8 +1023,8 @@ document.addEventListener('click', e => {
   else if (act === 'close') { const ym = ui.month; state.closed = state.closed.includes(ym) ? state.closed.filter(x=>x!==ym) : state.closed.concat(ym); save(); render(); toast(state.closed.includes(ym) ? 'ปิดงวด '+thMonth(ym)+' แล้ว' : 'เปิดงวดอีกครั้ง'); }
   else if (act === 'reset') { if (!ui.resetArmed){ ui.resetArmed = true; render(); return; } TR = []; TR_SKIPPED = []; TR_PENDING = []; state = seed(); state.view = 'settings'; ui.resetArmed = false; save(); render(); toast('ล้างข้อมูลในเครื่องนี้แล้ว'); }
   else if (act === 'printer') togglePrinter();
-  else if (act === 'print-one') { const n = Math.max(1, Math.min(50, parseInt($('#copies').value,10) || 1)); printAssets(Array(n).fill(cur())); }
-  else if (act === 'print-filtered') { const rows = filtered(); if (rows.length > 20 && !confirm('พิมพ์ป้าย ' + rows.length + ' ดวง?')) return; printAssets(rows); }
+  else if (act === 'print-one') { if (cur().docNo){ printAssets([cur()]); return; } const n = Math.max(1, Math.min(200, parseInt($('#copies').value,10) || 1)); printAssets(Array(n).fill(cur())); }
+  else if (act === 'print-filtered') { const rows = filtered(); const nLbl = rows.reduce((x,a) => x + pieces(a).length, 0); if (nLbl > 20 && !confirm('พิมพ์ป้าย ' + nLbl + ' ดวง?')) return; printAssets(rows); }
   else if (act === 'print-test') printAssets([state.assets[0] || {code:'OF2601/0001', name:'ป้ายทดสอบ เครื่องพิมพ์ NIIMBOT', branch:'สำนักงานใหญ่'}]);
   else if (act === 'backup') backup();
 });
@@ -1005,7 +1040,7 @@ document.addEventListener('input', e => {
   else if (t.id === 'month' && t.value){ ui.month = t.value; render(); }
   else if (t.dataset.life !== undefined){ const v = parseInt(t.value,10); if (v > 0){ state.cats[+t.dataset.life].life = v; save(); } }
   else if (t.id === 'threshold'){ state.threshold = +t.value || 0; save(); }
-  else if (t.id === 'f-date' || t.id === 'f-cost'){ updForm(); }
+  else if (t.id === 'f-date' || t.id === 'f-cost' || t.id === 'f-qty' || t.id === 'f-doc'){ updForm(); }
   else if (t.id && t.id.startsWith('x-')) updDispose();
   else if (t.id === 'c-date') updCap();
 });
@@ -1039,9 +1074,11 @@ const cur = () => state.assets.find(x => x.id === drawer.id);
 
 function updForm(){
   if (!drawer || drawer.mode !== 'form') return;
-  if (!drawer.id){ const c = $('#f-cat').value, d = $('#f-date').value || today; $('#codepreview').textContent = nextCode(c, d); }
-  const cost = +$('#f-cost').value, c = $('#f-cat').value;
-  $('#f-warn').innerHTML = cost && cat(c).dep !== false && cost < state.threshold ? `<div class="warnbox">ราคาต่ำกว่าเกณฑ์ ${fmt(state.threshold)} บาท ควรบันทึกเป็นวัสดุสิ้นเปลือง (1306000) แทนการลงทะเบียน</div>` : '';
+  if (!drawer.id){ const c = $('#f-cat').value, d = $('#f-date').value || today, sup = !!cat(c).supply, doc = ($('#f-doc').value||'').trim().toUpperCase();
+    $('#f-docwrap').hidden = !sup;
+    $('#codepreview').textContent = sup ? (doc ? supCode(doc, parseInt($('#f-qty').value,10)||1).text : 'ใส่เลขที่เอกสาร AP / EXP') : nextCode(c, d); }
+  const cost = +$('#f-cost').value, c = $('#f-cat').value, q = Math.max(1, parseInt($('#f-qty').value,10) || 1);
+  $('#f-warn').innerHTML = cost && cat(c).dep !== false && cost / q < state.threshold ? `<div class="warnbox">ราคาต่อหน่วยต่ำกว่าเกณฑ์ ${fmt(state.threshold)} บาท ควรบันทึกเป็นวัสดุสิ้นเปลือง (1306000) แทนการลงทะเบียน${drawer.id?'':' <button type="button" class="btn sm" data-act="to-cs">เปลี่ยนเป็นวัสดุสิ้นเปลือง</button>'}</div>` : '';
 }
 function saveForm(){
   const name = $('#f-name').value.trim(), date = $('#f-date').value, cost = parseFloat($('#f-cost').value);
@@ -1052,19 +1089,22 @@ function saveForm(){
   if (cat(c).dep !== false && !(life > 0)) return toast('อายุการใช้งานต้องอย่างน้อย 1 ปี');
   if (salvage >= cost) return toast('มูลค่าซากต้องน้อยกว่าราคาทุน');
   const fields = {name, acqDate:date, cost, life, salvage, branch:addBranch($('#f-branch').value), custodian:$('#f-cust').value.trim(), vendor:$('#f-vendor').value.trim(),
-    invoice:$('#f-inv').value.trim(), legacy:$('#f-legacy').value.trim(), note:$('#f-note').value.trim()};
+    invoice:$('#f-inv').value.trim(), legacy:$('#f-legacy').value.trim(), note:$('#f-note').value.trim(),
+    qty: Math.max(1, parseInt($('#f-qty').value,10) || 1), unit: $('#f-unit').value.trim() || 'ชิ้น'};
   if (drawer.id){
     const a = cur(); Object.assign(a, fields);
     if (drawer.pending.length){ a.photos.push(...drawer.pending); if (!a.photos.some(p=>p.primary)) a.photos[0].primary = true; }
     a.history.push({date: today, text: 'แก้ไขข้อมูล'});
     save(); drawer.mode = 'detail'; drawer.pending = []; renderDrawer(); render(); toast('บันทึกการแก้ไขแล้ว');
   } else {
-    const a = Object.assign({id:'a'+(++state.seq), code: nextCode(c, date), cat:c, status: cat(c).dep === false ? 'cip' : 'active', photos: drawer.pending, sample:false,
-      history:[{date: today, text:'ลงทะเบียนสินทรัพย์'}]}, fields, linkPending());
+    let sc = null;
+    if (cat(c).supply){ const doc = ($('#f-doc').value||'').trim().toUpperCase(); if (!doc) return toast('ใส่เลขที่เอกสาร AP / EXP เพื่อตั้งรหัส'); sc = Object.assign(supCode(doc, fields.qty), {docNo: doc}); delete sc.text; }
+    const a = Object.assign({id:'a'+(++state.seq), code: nextCode(c, date), cat:c, status: cat(c).supply ? 'active' : cat(c).dep === false ? 'cip' : 'active', photos: drawer.pending, sample:false,
+      history:[{date: today, text:'ลงทะเบียนสินทรัพย์'}]}, fields, linkPending(), sc || {});
     if (a.photos.length) a.photos[0].primary = true;
     state.assets.push(a);
     if (!save()){ state.assets.pop(); return; }
-    drawer = {mode:'detail', id:a.id, pending:[]}; state.view = 'register'; render(); renderDrawer(); toast('ลงทะเบียน ' + a.code + ' แล้ว');
+    drawer = {mode:'detail', id:a.id, pending:[]}; state.view = 'register'; render(); renderDrawer(); toast('ลงทะเบียน ' + codeText(a) + ' แล้ว');
   }
 }
 function doTransfer(){
