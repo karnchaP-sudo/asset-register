@@ -1,0 +1,1000 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>ทะเบียนสินทรัพย์</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: sticky ledger bar with tabs, one working column, a right-side drawer for each asset */
+:root{
+  --bg:#f3f6f5; --surface:#ffffff; --sunk:#eaf0ee; --ink:#16211d; --muted:#5a6a64; --line:#dbe3e0;
+  --accent:#1c6a56; --accent-ink:#ffffff; --accent-soft:#dfeee8;
+  --good:#2b7a49; --warn:#9a5a12; --bad:#b03636; --warn-soft:#fbefdf; --bad-soft:#f9e4e4;
+  --shadow:0 12px 40px rgba(20,40,34,.18);
+  --BD-bg:#e9eaec; --BD-fg:#4a4f57; --OF-bg:#fbe3d3; --OF-fg:#a2521c; --FF-bg:#dcefd3; --FF-fg:#3d7a2a; --KT-bg:#d8e9f8; --KT-fg:#23639e; --VH-bg:#dce6ea; --VH-fg:#3f5f6b; --SW-bg:#e8def5; --SW-fg:#6a4a9a; --CP-bg:#f8dcdc; --CP-fg:#a33a3a;
+  --f-body:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1412; --surface:#151d1a; --sunk:#1b2521; --ink:#e4ebe8; --muted:#97a6a0; --line:#2a3632;
+  --accent:#62c2a2; --accent-ink:#0b1a15; --accent-soft:#1c3029;
+  --good:#7fd09c; --warn:#e3a764; --bad:#f08c8c; --warn-soft:#33281a; --bad-soft:#3a2020;
+  --shadow:0 12px 40px rgba(0,0,0,.5); --BD-bg:#262a30; --BD-fg:#c3c8d0; --OF-bg:#3a2a1f; --OF-fg:#f2b48a; --FF-bg:#22331d; --FF-fg:#a8d898; --KT-bg:#1c2b3a; --KT-fg:#9cc8f0; --VH-bg:#1f2b30; --VH-fg:#a9c5cf; --SW-bg:#2c2438; --SW-fg:#c9b2ef; --CP-bg:#3a2222; --CP-fg:#f0a3a3; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1412; --surface:#151d1a; --sunk:#1b2521; --ink:#e4ebe8; --muted:#97a6a0; --line:#2a3632;
+  --accent:#62c2a2; --accent-ink:#0b1a15; --accent-soft:#1c3029;
+  --good:#7fd09c; --warn:#e3a764; --bad:#f08c8c; --warn-soft:#33281a; --bad-soft:#3a2020;
+  --shadow:0 12px 40px rgba(0,0,0,.5); --BD-bg:#262a30; --BD-fg:#c3c8d0; --OF-bg:#3a2a1f; --OF-fg:#f2b48a; --FF-bg:#22331d; --FF-fg:#a8d898; --KT-bg:#1c2b3a; --KT-fg:#9cc8f0; --VH-bg:#1f2b30; --VH-fg:#a9c5cf; --SW-bg:#2c2438; --SW-fg:#c9b2ef; --CP-bg:#3a2222; --CP-fg:#f0a3a3; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding-block:12px}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand b{font-size:18px;font-weight:600}
+.brand span{font-size:12px;color:var(--muted)}
+nav{display:flex;gap:4px;overflow-x:auto;flex:1;min-width:0}
+nav button{border:0;background:none;color:var(--muted);font:inherit;font-weight:500;padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
+nav button[aria-current="true"]{background:var(--accent-soft);color:var(--accent)}
+.demo-tag{font-size:12px;color:var(--warn);background:var(--warn-soft);padding:3px 10px;border-radius:99px}
+main{padding-block:24px 64px;display:grid;gap:24px}
+h1{font-size:24px;font-weight:600;margin:0;text-wrap:balance}
+h2{font-size:17px;font-weight:600;margin:0 0 12px}
+h3{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.sub{color:var(--muted);margin:4px 0 0;font-size:14px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
+.spread{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(160px,100%),1fr));gap:12px}
+main>*{min-width:0}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.kpi small{display:block;color:var(--muted);font-size:13px}
+.kpi strong{display:block;font-size:clamp(17px,4.6vw,22px);overflow-wrap:anywhere;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
+.kpi em{font-style:normal;font-size:12px;color:var(--muted)}
+.scroll{overflow-x:auto;min-width:0}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{font-size:12px;font-weight:600;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:right;white-space:nowrap}
+tfoot td{font-weight:600;border-top:1px solid var(--line);border-bottom:0}
+tbody tr.click{cursor:pointer}
+tbody tr.click:hover td{background:var(--sunk)}
+.code{font-family:var(--f-mono);font-weight:600;font-size:13.5px;letter-spacing:.01em;white-space:nowrap}
+.thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;display:block;background:var(--sunk)}
+.ph{width:44px;height:44px;border-radius:8px;display:grid;place-items:center;font-family:var(--f-mono);font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-soft)}
+.pill{display:inline-block;font-size:12px;font-weight:500;padding:2px 10px;border-radius:99px;white-space:nowrap}
+.p-active{background:var(--accent-soft);color:var(--accent)}
+.p-cip{background:var(--warn-soft);color:var(--warn)}
+.p-off{background:var(--sunk);color:var(--muted)}
+.p-full{background:var(--bad-soft);color:var(--bad)}
+.ex{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 5px;margin-left:6px}
+label.f{display:grid;gap:4px;font-size:13px;color:var(--muted);min-width:0}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0;width:100%}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn{font:inherit;font-weight:500;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink);white-space:nowrap}
+.btn:hover{background:var(--sunk)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:4px 10px;font-size:13px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 16px}
+.split{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:24px}
+@media (max-width:860px){.split{grid-template-columns:1fr}}
+.alert{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.alert:last-child{border-bottom:0}
+.alert b{font-variant-numeric:tabular-nums}
+.note{font-size:13px;color:var(--muted)}
+.warnbox{font-size:13px;color:var(--warn);background:var(--warn-soft);border-radius:8px;padding:8px 12px}
+
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:5px 14px 5px 5px;cursor:pointer;font:inherit;font-size:14px;color:var(--ink)}
+.chip .ic{width:30px;height:30px;border-radius:50%;display:grid;place-items:center}
+.chip .ic svg{width:18px;height:18px}
+.chip b{font-weight:600;font-variant-numeric:tabular-nums;color:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px}
+@media (max-width:560px){.cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.acard .meta{padding:10px}.acard .mrow b{font-size:13px}nav{flex-basis:100%;order:3}.brand span{display:none}}
+.acard{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;text-align:left;font:inherit;color:inherit;padding:0;transition:border-color .15s, transform .15s}
+.acard:hover{border-color:var(--accent);transform:translateY(-2px)}
+.art{aspect-ratio:4/3;width:100%;max-width:100%;display:grid;place-items:center;position:relative;overflow:hidden}
+.art svg{width:40%;height:auto}
+.art img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.art .tag{position:absolute;top:10px;left:10px;font-family:var(--f-mono);font-weight:600;font-size:12.5px;background:var(--surface);color:var(--ink);padding:3px 8px;border-radius:6px;z-index:1}
+.art .st{position:absolute;top:10px;right:10px;z-index:1}
+.acard .meta{padding:12px 14px 14px;display:grid;gap:6px}
+.acard .nm{font-weight:500;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.8em}
+.acard .br{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acard .mrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-top:1px solid var(--line);padding-top:8px;margin-top:2px}
+.acard .mrow small{font-size:12px;color:var(--muted)}
+.acard .mrow b{font-weight:600;font-variant-numeric:tabular-nums}
+.cattiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(230px,100%),1fr));gap:12px}
+.ctile{display:grid;grid-template-columns:56px 1fr;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;text-align:left;font:inherit;color:inherit}
+.ctile:hover{border-color:var(--accent)}
+.ctile .ic{width:56px;height:56px;border-radius:14px;display:grid;place-items:center}
+.ctile .ic svg{width:32px;height:32px}
+.ctile .t{min-width:0;display:grid;gap:2px}
+.ctile .t span{font-size:13px;color:var(--muted)}
+.ctile .t strong{font-size:18px;font-variant-numeric:tabular-nums}
+.meter{height:6px;border-radius:3px;background:var(--sunk);overflow:hidden;margin-top:6px}
+.meter i{display:block;height:100%;border-radius:3px}
+.blist{display:grid;gap:12px}
+.bitem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;font-size:14px;cursor:pointer}
+.bitem .meter{grid-column:1/-1;margin-top:0}
+.bitem b{font-variant-numeric:tabular-nums;font-weight:600}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--surface);color:var(--muted);font:inherit;font-size:14px;padding:7px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:500}
+.more{display:flex;justify-content:center}
+.heroart{border-radius:12px;aspect-ratio:auto;height:200px}
+.heroart svg{width:26%}
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(10,20,16,.42);z-index:40}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(760px,100%);background:var(--bg);z-index:41;box-shadow:var(--shadow);display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-right:env(safe-area-inset-right,0px)}
+.dhead{display:flex;justify-content:space-between;align-items:start;gap:12px;padding:18px 20px;border-bottom:1px solid var(--line);background:var(--surface)}
+.dbody{overflow-y:auto;padding:20px;display:grid;gap:20px;align-content:start}
+.dfoot{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--line);background:var(--surface)}
+.bigcode{font-family:var(--f-mono);font-size:22px;font-weight:600}
+.gallery{display:grid;gap:10px}
+.mainimg{width:100%;aspect-ratio:4/3;max-width:100%;object-fit:cover;border-radius:12px;background:var(--sunk);display:block}
+.noimg{min-height:120px;border-radius:12px;border:1px dashed var(--line);display:grid;place-items:center;color:var(--muted);text-align:center;padding:16px;background:var(--surface)}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap}
+.tw{position:relative}
+.tw img{width:72px;height:72px;object-fit:cover;border-radius:8px;display:block;border:2px solid transparent;cursor:pointer}
+.tw.primary img{border-color:var(--accent)}
+.tw .x{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--bad);font-size:13px;line-height:1;cursor:pointer;padding:0}
+.upl{display:inline-flex;align-items:center;gap:6px}
+.upl input{position:absolute;width:1px;height:1px;opacity:0}
+dl.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px 20px;margin:0}
+dl.facts div{min-width:0}
+dl.facts dt{font-size:12px;color:var(--muted)}
+dl.facts dd{margin:0;font-weight:500;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.label{display:flex;gap:12px;align-items:center;border:1px solid var(--ink);border-radius:6px;padding:10px 12px;width:min(340px,100%);background:#fff;color:#111}
+.label .qr svg{width:84px;height:84px;display:block}
+.label .t{display:grid;gap:2px;min-width:0}
+.label .t small{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#555}
+.label .t b{font-family:var(--f-mono);font-size:17px}
+.label .t span{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hist{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.hist li{display:grid;grid-template-columns:110px 1fr;gap:10px;font-size:14px}
+.hist li span:first-child{color:var(--muted);font-variant-numeric:tabular-nums}
+.jv td:first-child{width:56px;color:var(--muted)}
+.jv .cr td:nth-child(2){padding-left:32px}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:60;max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.6}}}
+
+.prbtn{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:5px 12px;border-radius:99px;cursor:pointer;white-space:nowrap}
+.prbtn i{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.prbtn[data-state="on"] i{background:var(--good)}
+.prbtn[data-state="busy"] i{background:var(--warn)}
+.lblprev{display:block;width:min(340px,100%);height:auto;border:1px solid var(--line);border-radius:8px;background:#fff;image-rendering:pixelated}
+.prrow{display:flex;flex-wrap:wrap;gap:8px;align-items:end;margin-top:10px}
+.prrow .f{width:110px}
+.empty{text-align:center;padding:40px 20px;display:grid;gap:12px;justify-items:center}
+.empty h2{margin:0}
+.filebtn{position:relative;overflow:hidden}
+.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.prog{height:6px;border-radius:99px;background:var(--sunk);overflow:hidden;margin-top:8px}
+.prog i{display:block;height:100%;background:var(--accent);width:0;transition:width .2s}
+</style>
+
+</head>
+<body>
+<header>
+  <div class="wrap bar">
+    <div class="brand"><b>ทะเบียนสินทรัพย์</b><span>Fixed Asset Register</span></div>
+    <nav id="nav">
+      <button data-view="overview">ภาพรวม</button>
+      <button data-view="register">ทะเบียน</button>
+      <button data-view="dep">ค่าเสื่อมราคา</button>
+      <button data-view="settings">ตั้งค่า</button>
+    </nav>
+    <button class="prbtn" id="prbtn" data-act="printer" title="เชื่อมต่อเครื่องพิมพ์ NIIMBOT ผ่าน Bluetooth"><i></i><span>เครื่องพิมพ์ป้าย</span></button>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+<div id="layer"></div>
+<div id="toast" hidden></div>
+
+<script src="vendor/qrcode-generator-1.4.4.js"></script>
+<script src="vendor/niimbluelib-0.47.1.min.js"></script>
+<script>
+(function(){
+const STORE = 'fa-register-v1';
+const DEFAULT_CATS = [
+  {code:'BD', acc:'1702100', name:'ส่วนปรับปรุงอาคาร', life:10, dep:true},
+  {code:'OF', acc:'1704001', name:'อุปกรณ์เครื่องใช้สำนักงาน', life:5, dep:true},
+  {code:'FF', acc:'1703001', name:'เครื่องตกแต่งติดตั้ง', life:5, dep:true},
+  {code:'KT', acc:'1704000', name:'เครื่องมือเครื่องใช้ในครัว', life:5, dep:true},
+  {code:'VH', acc:'1706000', name:'ยานพาหนะ', life:5, dep:true},
+  {code:'SW', acc:'1801000', name:'ซอฟต์แวร์และแอปพลิเคชั่น', life:3, dep:true},
+  {code:'CP', acc:'1707000', name:'งานระหว่างก่อสร้าง', life:0, dep:false}
+];
+
+let TR = [];
+let TR_SKIPPED = [];
+function seed(){
+  let n = 0;
+  const assets = TR.map(t => { const [code,c,name,branch,vendor,invoice,acqDate,cost,life,refs,po] = t;
+    return {id:'a'+(++n), code, cat:c, name, branch, dept:'', custodian:'', vendor, invoice, acqDate, cost, salvage:1, life, status:'active', photos:[], legacy:'', note:'',
+      refs, po, src:'trcloud', history:[{date:acqDate, text:'นำเข้าจาก TRCloud (' + refs.join(', ') + ')'}]}; });
+  const branches = Array.from(new Set(assets.map(a => a.branch))).sort((x,y)=>x.localeCompare(y,'th'));
+  return {cats:JSON.parse(JSON.stringify(DEFAULT_CATS)), branches, threshold:5000, assets, closed:[], seq:n, view:'overview', skipped:TR_SKIPPED.slice(), label:(state&&state.label)||undefined};
+}
+function load(){ try{ const s = localStorage.getItem(STORE); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
+let state = null;
+state = load() || seed();
+function save(){ try{ localStorage.setItem(STORE, JSON.stringify(state)); return true; }catch(e){ toast('บันทึกในเบราว์เซอร์ไม่ได้ พื้นที่อาจเต็ม ลองลบรูปบางรูป'); return false; } }
+
+/* ---------- utils ---------- */
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const r2 = n => Math.round(n*100)/100;
+const fmt = n => (Number(n)||0).toLocaleString('th-TH',{minimumFractionDigits:2, maximumFractionDigits:2});
+const pad = (n,w=2) => String(n).padStart(w,'0');
+const today = (() => { const d = new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); })();
+const dUTC = s => Date.UTC(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10));
+const isoUTC = t => new Date(t).toISOString().slice(0,10);
+const thDate = s => s ? new Date(dUTC(s)).toLocaleDateString('th-TH',{day:'numeric', month:'short', year:'numeric', timeZone:'UTC'}) : '–';
+const monthEnd = ym => isoUTC(Date.UTC(+ym.slice(0,4), +ym.slice(5,7), 0));
+const prevMonthEnd = ym => isoUTC(Date.UTC(+ym.slice(0,4), +ym.slice(5,7)-1, 0));
+const thMonth = ym => new Date(Date.UTC(+ym.slice(0,4), +ym.slice(5,7)-1, 1)).toLocaleDateString('th-TH',{month:'long', year:'numeric', timeZone:'UTC'});
+const cat = c => state.cats.find(x => x.code === c) || {code:c, name:c, life:0, dep:false, acc:''};
+let toastT;
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
+
+/* ---------- accounting ---------- */
+function nextCode(c, date){
+  const prefix = c + date.slice(2,4) + date.slice(5,7);
+  let max = 0;
+  state.assets.forEach(a => { if (a.code.startsWith(prefix + '/')) max = Math.max(max, parseInt(a.code.slice(prefix.length+1,prefix.length+5),10) || 0); });
+  return prefix + '/' + pad(max+1, 4);
+}
+const depreciable = a => cat(a.cat).dep !== false && a.life > 0;
+function endOfUse(a){ // last date the asset is on the books
+  if (a.disposal) return a.disposal.date;
+  if (a.transfer) return a.transfer.date;
+  return null;
+}
+function accDep(a, asOf){
+  if (!depreciable(a)) return 0;
+  let end = asOf; const e = endOfUse(a); if (e && e < end) end = e;
+  if (end < a.acqDate) return 0;
+  const base = a.cost - a.salvage; if (base <= 0) return 0;
+  const days = (dUTC(end) - dUTC(a.acqDate)) / 864e5 + 1;
+  return r2(Math.min(base, base / a.life * days / 365));
+}
+const onBooks = (a, d) => a.acqDate <= d && !(endOfUse(a) && endOfUse(a) < d);
+const nbv = (a, d) => onBooks(a, d) ? r2(a.cost - accDep(a, d)) : 0;
+function fullyDate(a){
+  if (!depreciable(a)) return null;
+  const y = +a.acqDate.slice(0,4), m = +a.acqDate.slice(5,7), d = +a.acqDate.slice(8,10);
+  return isoUTC(Date.UTC(y + a.life, m-1, d) - 864e5);
+}
+function statusOf(a, d=today){
+  if (a.status === 'disposed') return ['จำหน่ายแล้ว','p-off'];
+  if (a.status === 'transferred') return ['โอนเป็นสินทรัพย์แล้ว','p-off'];
+  if (a.status === 'cip') return ['ระหว่างก่อสร้าง','p-cip'];
+  if (depreciable(a) && accDep(a, d) >= r2(a.cost - a.salvage)) return ['ค่าเสื่อมครบแล้ว','p-full'];
+  return ['ใช้งาน','p-active'];
+}
+function schedule(a){
+  const rows = []; if (!depreciable(a)) return rows;
+  const y0 = +a.acqDate.slice(0,4); let prev = 0;
+  for (let y = y0; y < y0 + 60; y++){
+    const acc = accDep(a, y + '-12-31'); const dep = r2(acc - prev);
+    if (dep <= 0 && y > y0) break;
+    rows.push({y, dep, acc, nbv: r2(a.cost - acc)}); prev = acc;
+  }
+  return rows;
+}
+
+/* ---------- views ---------- */
+let ui = {asOf: today, q:'', fcat:'', fbranch:'', fstatus:'', month: today.slice(0,7), resetArmed:false, mode:'card', limit:48};
+
+function render(){
+  document.querySelectorAll('#nav button').forEach(b => b.setAttribute('aria-current', b.dataset.view === state.view));
+  const v = state.view;
+  $('#app').innerHTML = (!state.assets.length && v !== 'settings') ? vEmpty() : v === 'register' ? vRegister() : v === 'dep' ? vDep() : v === 'settings' ? vSettings() : vOverview();
+  updPr();
+}
+
+function photoOf(a){ const p = a.photos.find(p => p.primary) || a.photos[0]; return p ? p.src : null; }
+function thumbHtml(a){ const s = photoOf(a); return s ? `<img class="thumb" src="${s}" alt="">` : `<div class="ph" style="${tint(a.cat)}">${svg(iconKey(a)).replace('<svg ','<svg width="24" height="24" ')}</div>`; }
+const ICONS = {
+ fridge:'<rect x="12" y="4" width="24" height="40" rx="3"/><path d="M12 18h24M16 10v4M16 24v8"/>',
+ ice:'<rect x="8" y="6" width="32" height="28" rx="3"/><path d="M8 16h32"/><rect x="15" y="21" width="7" height="7" rx="1.5"/><rect x="26" y="20" width="7" height="7" rx="1.5"/><path d="M14 34v8M34 34v8"/>',
+ blender:'<path d="M16 6h16l-3 22H19z"/><path d="M14 28h20v6a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4z"/><path d="M12 44h24M20 14h8"/>',
+ coffee:'<rect x="10" y="6" width="28" height="10" rx="2"/><path d="M14 16v22h20V16"/><path d="M19 23h10v5a5 5 0 0 1-10 0z"/><path d="M8 42h32"/>',
+ steel:'<path d="M4 20h40"/><path d="M8 20v22M40 20v22M8 33h32"/><path d="M16 20v-6a4 4 0 0 1 8 0v2"/>',
+ laptop:'<rect x="10" y="10" width="28" height="20" rx="2"/><path d="M4 36h40l-3 4H7z"/>',
+ tablet:'<rect x="12" y="4" width="24" height="40" rx="4"/><path d="M21 38h6"/>',
+ tv:'<rect x="4" y="8" width="40" height="26" rx="2"/><path d="M16 42h16M24 34v8"/>',
+ printer:'<path d="M14 18V6h20v12"/><rect x="6" y="18" width="36" height="16" rx="2"/><path d="M14 28h20v14H14zM35 24h.01"/>',
+ camera:'<path d="M6 14h8l3-5h14l3 5h8v24H6z"/><circle cx="24" cy="25" r="7"/>',
+ sign:'<rect x="4" y="12" width="40" height="18" rx="3"/><path d="M12 30v12M36 30v12M12 21h24M14 6l4 6M34 6l-4 6"/>',
+ aircon:'<rect x="4" y="8" width="40" height="16" rx="3"/><path d="M10 18h28M14 30c0 4-2 6-2 9M24 30c0 4-2 6-2 9M34 30c0 4-2 6-2 9"/>',
+ building:'<path d="M6 42h36M10 42V16l14-9 14 9v26"/><path d="M19 42V31h10v11M16 22h4M28 22h4"/>',
+ machine:'<rect x="6" y="14" width="36" height="22" rx="2"/><circle cx="18" cy="25" r="5"/><path d="M28 21h8M28 28h8M10 36v6M38 36v6M16 14V8h16v6"/>',
+ box:'<path d="M6 16l18-8 18 8v20l-18 8-18-8z"/><path d="M6 16l18 8 18-8M24 24v20"/>',
+ pot:'<path d="M8 18h32v16a8 8 0 0 1-8 8H16a8 8 0 0 1-8-8z"/><path d="M4 18h40M18 12h12M24 8v4"/>',
+ lamp:'<path d="M16 6h16l6 16H10z"/><path d="M24 22v16M14 42h20"/>',
+ truck:'<path d="M4 12h24v20H4zM28 20h10l6 6v6H28z"/><circle cx="12" cy="36" r="4"/><circle cx="36" cy="36" r="4"/>',
+ app:'<rect x="6" y="8" width="36" height="28" rx="3"/><path d="M6 16h36M18 23l-4 4 4 4M30 23l4 4-4 4"/>',
+ crane:'<path d="M10 42V8h4M10 8h30M14 8l-4 6M34 8v10"/><rect x="30" y="18" width="8" height="6"/><path d="M4 42h20"/>'
+};
+const ICON_RULES = [
+ ['ice', /น้ำแข็ง|ice maker|ice machine/i], ['coffee', /สตรีมนม|สตีมนม|กาแฟ|zenbrew|dispenser|ช็อต|มัทฉะ|espresso/i],
+ ['blender', /ปั่น|vitamix|juicer|ultramix|ผสม/i], ['aircon', /แอร์|ปรับอากาศ|คอมเพรสเซอร์/i],
+ ['fridge', /ตู้แช่|ตู้เย็น|sanden|chiller|ตู้กระจก|ตู้กระบะ|ตู้เเช่/i], ['camera', /กล้อง|camera|cctv/i],
+ ['tv', /\btv\b|ทีวี|จอ|monitor/i], ['laptop', /notebook|macbook|ideapad|mac mini|mac neo|คอม|aio|all.in.one|ออลอินวัน|desktop/i],
+ ['tablet', /ipad|tab\b|pos|โทรศัพท์|galaxy/i], ['printer', /ปริ้น|พิมพ์|pixma|เคลือบ|printer/i],
+ ['sign', /ป้าย|กล่องไฟ|led/i], ['steel', /ซิงค์|สแตนเลส|สเตนเลส|ถัง|รถเข็น|ชั้นวาง|โต๊ะ|บันได/i],
+ ['machine', /เครื่องจักร|ขนม|กวน|กระป๋อง|ฝุ่น|vacuum|เป่ามือ/i], ['building', /ปรับปรุง|รั้ว|พื้น|ไฟฟ้า|หลอดไฟ|โกดัง/i]
+];
+const CAT_ICON = {BD:'building', OF:'box', FF:'lamp', KT:'pot', VH:'truck', SW:'app', CP:'crane'};
+const iconKey = a => { for (const [k, re] of ICON_RULES) if (re.test(a.name)) return k; return CAT_ICON[a.cat] || 'box'; };
+const svg = k => `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]}</svg>`;
+const tint = c => `background:var(--${c}-bg);color:var(--${c}-fg)`;
+function artHtml(a, cls=''){
+  const s = photoOf(a);
+  return `<div class="art ${cls}" style="${tint(a.cat)}">${s ? `<img src="${s}" alt="">` : svg(iconKey(a))}</div>`;
+}
+function cardHtml(a){
+  const [s, cls] = statusOf(a);
+  return `<button class="acard" data-open="${a.id}">
+    <div style="position:relative">${artHtml(a)}      <span class="tag" style="position:absolute;top:10px;left:10px;font-family:var(--f-mono);font-weight:600;font-size:12.5px;background:var(--surface);color:var(--ink);padding:3px 8px;border-radius:6px">${esc(a.code)}</span>
+      ${cls!=='p-active'?`<span class="pill ${cls}" style="position:absolute;top:10px;right:10px">${s}</span>`:''}</div>
+    <div class="meta"><div class="nm">${esc(a.name)}</div><div class="br">${esc(a.branch)} · ${thDate(a.acqDate)}</div>
+      <div class="mrow"><small>ราคาทุน</small><b>${fmt(a.cost)}</b></div>
+      <div class="mrow" style="border:0;padding:0;margin:0"><small>มูลค่าสุทธิวันนี้</small><b>${fmt(nbv(a,today))}</b></div></div></button>`;
+}
+
+
+function vOverview(){
+  const d = ui.asOf;
+  const live = state.assets.filter(a => onBooks(a, d));
+  const cost = live.reduce((s,a)=>s+a.cost,0), acc = live.reduce((s,a)=>s+accDep(a,d),0);
+  const byCat = state.cats.map(c => { const xs = live.filter(a => a.cat === c.code);
+    return {c, n:xs.length, cost:xs.reduce((s,a)=>s+a.cost,0), acc:xs.reduce((s,a)=>s+accDep(a,d),0)}; });
+  const maxCat = Math.max(1, ...byCat.map(r=>r.cost));
+  const brMap = {}; live.forEach(a => { (brMap[a.branch] = brMap[a.branch] || {n:0, cost:0}); brMap[a.branch].n++; brMap[a.branch].cost += a.cost; });
+  const brs = Object.entries(brMap).sort((x,y)=>y[1].cost-x[1].cost).slice(0,8); const maxBr = brs.length ? brs[0][1].cost : 1;
+  const noPhoto = live.filter(a => !a.photos.length).length;
+  const under = live.filter(a=>a.cost<state.threshold&&a.cat!=='CP').length;
+  const full = live.filter(a => statusOf(a,d)[0] === 'ค่าเสื่อมครบแล้ว').length;
+  const thisMonth = state.assets.reduce((s,a)=>s + r2(accDep(a, monthEnd(d.slice(0,7))) - accDep(a, prevMonthEnd(d.slice(0,7)))),0);
+  const recent = state.assets.slice().sort((x,y)=>y.acqDate.localeCompare(x.acqDate)||y.code.localeCompare(x.code)).slice(0,4);
+  return `
+  <div class="spread"><div><h1>ภาพรวมสินทรัพย์</h1><p class="sub">ยอด ณ วันที่ ${thDate(d)} · คลิกหมวดหรือสาขาเพื่อดูรายการ</p></div>
+    <label class="f" style="width:180px">ยอด ณ วันที่<input type="date" id="asof" value="${d}"></label></div>
+  <div class="kpis">
+    <div class="kpi"><small>สินทรัพย์ในทะเบียน</small><strong>${live.length.toLocaleString('th-TH')} ชิ้น</strong><em>${Object.keys(brMap).length} สาขา/หน่วยงาน</em></div>
+    <div class="kpi"><small>ราคาทุนรวม</small><strong>${fmt(cost)}</strong><em>บาท</em></div>
+    <div class="kpi"><small>ค่าเสื่อมราคาสะสม</small><strong>${fmt(acc)}</strong><em>เดือนนี้ ${fmt(thisMonth)} บาท</em></div>
+    <div class="kpi"><small>มูลค่าสุทธิตามบัญชี</small><strong>${fmt(cost-acc)}</strong><em>บาท</em></div>
+  </div>
+  <section><h2>หมวดสินทรัพย์</h2><div class="cattiles">
+    ${byCat.map(r => `<button class="ctile" data-gocat="${r.c.code}"><div class="ic" style="${tint(r.c.code)}">${svg(CAT_ICON[r.c.code])}</div>
+      <div class="t"><span>${r.c.code} · ${esc(r.c.name)}</span><strong>${r.n} ชิ้น</strong><span>ทุน ${fmt(r.cost)} · สุทธิ ${fmt(r.cost-r.acc)}</span>
+      <div class="meter"><i style="width:${(r.cost/maxCat*100).toFixed(1)}%;background:var(--${r.c.code}-fg)"></i></div></div></button>`).join('')}
+  </div></section>
+  <div class="split">
+    <section class="card"><h2>สาขาที่มีมูลค่าสินทรัพย์สูงสุด</h2><div class="blist">
+      ${brs.map(([b,v]) => `<div class="bitem" data-gobranch="${esc(b)}"><span>${esc(b)} <span class="note">· ${v.n} ชิ้น</span></span><b>${fmt(v.cost)}</b>
+        <div class="meter"><i style="width:${(v.cost/maxBr*100).toFixed(1)}%;background:var(--accent)"></i></div></div>`).join('')}
+    </div></section>
+    <section class="card"><h2>เรื่องที่ต้องดู</h2>
+      <div class="alert"><span>ยังไม่มีรูปถ่ายจริง</span><b>${noPhoto} ชิ้น</b></div>
+      <div class="alert"><span>ราคาต่ำกว่าเกณฑ์ ${fmt(state.threshold)} บาท</span><b>${under} ชิ้น</b></div>
+      <div class="alert"><span>ค่าเสื่อมครบแล้วแต่ยังใช้งาน</span><b>${full} ชิ้น</b></div>
+      <div class="alert"><span>เอกสาร TRCloud ที่ไม่ได้นำเข้า</span><b>${(state.skipped||[]).length} เอกสาร</b></div>
+      <p class="note" style="margin:12px 0 0">ภาพในการ์ดเป็นภาพประกอบตามประเภทของ จนกว่าจะเพิ่มรูปถ่ายจริง</p>
+    </section>
+  </div>
+  <section><div class="spread" style="margin-bottom:12px"><h2 style="margin:0">ได้มาล่าสุด</h2><button class="btn sm" data-gocat="">ดูทั้งหมด</button></div>
+    <div class="cards">${recent.map(cardHtml).join('')}</div></section>
+  <section class="card"><h2>รายการจาก TRCloud ที่ไม่ได้นำเข้า ต้องตรวจสอบ</h2>
+    <p class="note" style="margin:0 0 10px">ดึงจากสมุดบัญชีแยกประเภท 1702100, 1703001, 1704000, 1704001 วันที่ 1 ม.ค.–10 พ.ย. 2026 รวมยอด Dr/Cr ตามเอกสารต้นทาง เอกสารที่ยอดสุทธิไม่เป็นบวกจึงไม่สร้างเป็นสินทรัพย์</p>
+    <div class="scroll"><table><thead><tr><th>เอกสาร</th><th>หมวด</th><th>รายการ</th><th>เหตุผล</th></tr></thead>
+    <tbody>${(state.skipped||[]).map(s=>`<tr><td class="code">${s[0]}</td><td>${s[1]}</td><td>${esc(s[2])}</td><td>${esc(s[3])}</td></tr>`).join('')}</tbody></table></div>
+  </section>`;
+}
+
+function filtered(){
+  const q = ui.q.trim().toLowerCase();
+  return state.assets.filter(a =>
+    (!ui.fcat || a.cat === ui.fcat) && (!ui.fbranch || a.branch === ui.fbranch) &&
+    (!ui.fstatus || statusOf(a)[0] === ui.fstatus) &&
+    (!q || [a.code,a.name,a.custodian,a.vendor,a.invoice,a.legacy].join(' ').toLowerCase().includes(q))
+  ).sort((x,y) => y.acqDate.localeCompare(x.acqDate) || x.code.localeCompare(y.code));
+}
+
+function vEmpty(){
+  return `<section class="card empty">
+    <h2>ยังไม่มีข้อมูลสินทรัพย์ในเบราว์เซอร์นี้</h2>
+    <p class="note" style="margin:0;max-width:520px">นำเข้าไฟล์ข้อมูลทรัพย์สิน (.json) ที่ได้รับจากฝ่ายบัญชี หรือไฟล์สำรองข้อมูลจากเครื่องอื่น ข้อมูลจะเก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น ไม่ถูกส่งขึ้นเว็บ</p>
+    <div class="row" style="justify-content:center"><label class="btn pri filebtn">นำเข้าไฟล์ข้อมูล<input type="file" accept=".json,application/json" id="importfile"></label>
+    <button class="btn" data-act="new">+ เพิ่มสินทรัพย์เอง</button></div>
+  </section>`;
+}
+
+function vRegister(){
+  const rows = filtered();
+  const statuses = ['ใช้งาน','ระหว่างก่อสร้าง','ค่าเสื่อมครบแล้ว','จำหน่ายแล้ว','โอนเป็นสินทรัพย์แล้ว'];
+  const counts = {}; state.assets.forEach(a => counts[a.cat] = (counts[a.cat]||0)+1);
+  const shown = rows.slice(0, ui.limit);
+  const total = rows.reduce((s,a)=>s+a.cost,0);
+  return `
+  <div class="spread"><div><h1>ทะเบียนสินทรัพย์</h1><p class="sub">${rows.length} ชิ้น · ราคาทุน ${fmt(total)} บาท · คลิกการ์ดเพื่อดูรายละเอียด รูป และป้าย QR</p></div>
+    <div class="row"><div class="seg" role="group" aria-label="มุมมอง"><button data-mode="card" aria-pressed="${ui.mode==='card'}">การ์ด</button><button data-mode="table" aria-pressed="${ui.mode==='table'}">ตาราง</button></div>
+    <button class="btn" data-act="print-filtered" ${rows.length?'':'disabled'}>พิมพ์ป้าย ${rows.length} ชิ้น</button><button class="btn pri" data-act="new">+ เพิ่มสินทรัพย์</button></div></div>
+  <div class="chips">
+    <button class="chip" data-fcat="" aria-pressed="${!ui.fcat}"><span class="ic" style="background:var(--sunk)">${svg('box')}</span>ทั้งหมด <b>${state.assets.length}</b></button>
+    ${state.cats.filter(c=>counts[c.code]).map(c=>`<button class="chip" data-fcat="${c.code}" aria-pressed="${ui.fcat===c.code}"><span class="ic" style="${tint(c.code)}">${svg(CAT_ICON[c.code])}</span>${esc(c.name)} <b>${counts[c.code]}</b></button>`).join('')}
+  </div>
+  <div class="row">
+    <label class="f" style="flex:2 1 220px">ค้นหา<input id="q" type="search" placeholder="รหัส ชื่อ ผู้ขาย เลขที่เอกสาร" value="${esc(ui.q)}"></label>
+    <label class="f" style="flex:1 1 180px">สาขา<select id="fbranch"><option value="">ทุกสาขา</option>${state.branches.map(b=>`<option ${ui.fbranch===b?'selected':''}>${esc(b)}</option>`).join('')}</select></label>
+    <label class="f" style="flex:1 1 150px">สถานะ<select id="fstatus"><option value="">ทุกสถานะ</option>${statuses.map(s=>`<option ${ui.fstatus===s?'selected':''}>${s}</option>`).join('')}</select></label>
+  </div>
+  ${!rows.length ? `<section class="card note" style="text-align:center;padding:40px">ไม่พบสินทรัพย์ตามเงื่อนไข ลองล้างตัวกรองหรือคำค้นหา</section>` :
+   ui.mode === 'card' ? `<div class="cards">${shown.map(cardHtml).join('')}</div>` :
+  `<section class="card" style="padding:4px 8px"><div class="scroll"><table>
+    <thead><tr><th></th><th>รหัสทรัพย์สิน</th><th>ชื่อสินทรัพย์</th><th>สาขา</th><th>วันที่ได้มา</th><th class="n">ราคาทุน</th><th class="n">มูลค่าสุทธิวันนี้</th><th>สถานะ</th></tr></thead>
+    <tbody>${shown.map(a => { const [s,cls] = statusOf(a); return `<tr class="click" data-open="${a.id}" tabindex="0">
+      <td>${thumbHtml(a)}</td><td class="code">${esc(a.code)}</td>
+      <td>${esc(a.name)}${a.cost<state.threshold&&a.cat!=='CP'?'<span class="ex" style="color:var(--warn)">ต่ำกว่าเกณฑ์</span>':''}<div class="note">${esc(cat(a.cat).name)}</div></td>
+      <td>${esc(a.branch)}</td><td style="white-space:nowrap">${thDate(a.acqDate)}</td>
+      <td class="n">${fmt(a.cost)}</td><td class="n">${fmt(nbv(a,today))}</td><td><span class="pill ${cls}">${s}</span></td></tr>`; }).join('')}</tbody>
+  </table></div></section>`}
+  ${rows.length > shown.length ? `<div class="more"><button class="btn" data-act="more">แสดงเพิ่มอีก ${Math.min(48, rows.length-shown.length)} จาก ${rows.length-shown.length} ชิ้น</button></div>` : ''}`;
+}
+
+function vDep(){
+  const ym = ui.month, endD = monthEnd(ym), prevD = prevMonthEnd(ym);
+  const lines = state.assets.map(a => ({a, dep: r2(accDep(a,endD) - accDep(a,prevD)), acc: accDep(a,endD)})).filter(x => x.dep > 0)
+    .sort((x,y)=>x.a.code.localeCompare(y.a.code));
+  const total = lines.reduce((s,x)=>s+x.dep,0);
+  const byCat = state.cats.map(c => ({c, dep: r2(lines.filter(x=>x.a.cat===c.code).reduce((s,x)=>s+x.dep,0))})).filter(x=>x.dep>0);
+  const closed = state.closed.includes(ym);
+  const word = c => c.code === 'SW' ? 'ค่าตัดจำหน่าย' : 'ค่าเสื่อมราคา';
+  return `
+  <div class="spread"><div><h1>ค่าเสื่อมราคาประจำเดือน</h1><p class="sub">${thMonth(ym)} · ${lines.length} รายการ · รวม ${fmt(total)} บาท ${closed?'<span class="pill p-active">ปิดงวดแล้ว</span>':''}</p></div>
+    <div class="row"><label class="f" style="width:180px">งวด<input type="month" id="month" value="${ym}"></label>
+    <button class="btn ${closed?'':'pri'}" data-act="close">${closed?'เปิดงวดอีกครั้ง':'ปิดงวด'}</button></div></div>
+  <div class="split">
+    <section class="card" style="padding:4px 8px"><div class="scroll"><table>
+      <thead><tr><th>รหัสทรัพย์สิน</th><th>ชื่อ</th><th class="n">ค่าเสื่อมเดือนนี้</th><th class="n">สะสมสิ้นเดือน</th><th class="n">มูลค่าสุทธิ</th></tr></thead>
+      <tbody>${lines.map(x=>`<tr class="click" data-open="${x.a.id}"><td class="code">${esc(x.a.code)}</td><td>${esc(x.a.name)}</td><td class="n">${fmt(x.dep)}</td><td class="n">${fmt(x.acc)}</td><td class="n">${fmt(x.a.cost-x.acc)}</td></tr>`).join('') || '<tr><td colspan="5" class="note" style="padding:24px;text-align:center">ไม่มีค่าเสื่อมในงวดนี้</td></tr>'}</tbody>
+      <tfoot><tr><td colspan="2">รวม</td><td class="n">${fmt(total)}</td><td></td><td></td></tr></tfoot>
+    </table></div></section>
+    <section class="card"><h2>รายการบันทึกบัญชี (JV) ที่จะส่งเข้าระบบบัญชี</h2>
+      <p class="note" style="margin:0 0 10px">ลงวันที่ ${thDate(endD)} · แยกตามหมวด</p>
+      <div class="scroll"><table class="jv"><thead><tr><th></th><th>บัญชี</th><th class="n">เดบิต</th><th class="n">เครดิต</th></tr></thead><tbody>
+      ${byCat.map(x=>`<tr><td>Dr</td><td>${word(x.c)} – ${esc(x.c.name)}</td><td class="n">${fmt(x.dep)}</td><td></td></tr>
+        <tr class="cr"><td>Cr</td><td>${word(x.c)}สะสม – ${esc(x.c.name)}</td><td></td><td class="n">${fmt(x.dep)}</td></tr>`).join('')}
+      </tbody><tfoot><tr><td></td><td>รวม</td><td class="n">${fmt(total)}</td><td class="n">${fmt(total)}</td></tr></tfoot></table></div>
+      <p class="note" style="margin:12px 0 0">รหัสบัญชีค่าเสื่อมและค่าเสื่อมสะสมของแต่ละหมวดจะผูกในหน้าตั้งค่าเมื่อทำระบบจริง แล้วส่งเข้า TRCloud เป็น JV</p>
+    </section>
+  </div>`;
+}
+
+function vSettings(){
+  return `
+  <div><h1>ตั้งค่า</h1><p class="sub">หมวดและรหัสบัญชีตามกลุ่มทรัพย์สินในงบการเงิน อายุการใช้งานเป็นค่าเริ่มต้นเมื่อเพิ่มสินทรัพย์ใหม่</p></div>
+  <section class="card" style="padding:4px 8px"><div class="scroll"><table>
+    <thead><tr><th>หมวด</th><th>รหัสบัญชี</th><th>ชื่อบัญชี</th><th>คิดค่าเสื่อม</th><th class="n">อายุใช้งาน (ปี)</th><th class="n">ตัวอย่างรหัสถัดไป</th></tr></thead>
+    <tbody>${state.cats.map((c,i)=>`<tr><td class="code">${c.code}</td><td class="code" style="font-weight:500">${c.acc}</td><td>${esc(c.name)}</td><td>${c.dep===false?'ไม่คิด':'เส้นตรง'}</td>
+      <td class="n">${c.dep===false?'–':`<input type="number" min="1" max="50" step="1" style="width:80px;text-align:right" id="life-${c.code}" data-life="${i}" value="${c.life}">`}</td>
+      <td class="n code">${nextCode(c.code, today)}</td></tr>`).join('')}</tbody>
+  </table></div></section>
+  <section class="card"><div class="grid2">
+    <label class="f">มูลค่าขั้นต่ำที่จะลงเป็นสินทรัพย์ (บาท)<input type="number" id="threshold" min="0" step="100" value="${state.threshold}"></label>
+    <div class="note" style="align-self:end">ต่ำกว่าเกณฑ์นี้ระบบจะเตือนให้บันทึกเป็นวัสดุสิ้นเปลือง (1306000) แทน</div>
+  </div></section>
+  <section class="card"><h2>รูปแบบรหัสทรัพย์สิน</h2>
+    <p style="margin:0">หมวด + ปีปี + เดือนเดือน / ลำดับ 4 หลัก เช่น <span class="code">OF2601/0001</span> ลำดับเริ่ม 0001 ใหม่ทุกเดือนต่อหมวด ใช้ปีและเดือนจากวันที่ได้มา รหัสออกอัตโนมัติและแก้ไม่ได้หลังบันทึก</p>
+  </section>
+  <section class="card"><h2>เครื่องพิมพ์ป้าย NIIMBOT</h2>
+    <div class="grid2">
+      <label class="f">ขนาดป้าย<select id="l-size">
+        <option value="50x30" ${L().size==='50x30'?'selected':''}>50 × 30 มม. แบบเต็ม</option>
+        <option value="50x15x2" ${L().size==='50x15x2'?'selected':''}>50 × 15 มม. แบบย่อ (2 ดวงต่อแผ่น)</option></select></label>
+      <label class="f">ความเข้ม (1–5)<input type="number" id="l-density" min="1" max="5" value="${L().density}"></label>
+      <label class="f">ชนิดกระดาษ<select id="l-type">
+        <option value="1" ${L().type==1?'selected':''}>สติกเกอร์มีช่องว่างระหว่างดวง</option>
+        <option value="2" ${L().type==2?'selected':''}>มีแถบดำ</option>
+        <option value="5" ${L().type==5?'selected':''}>กระดาษใส</option></select></label>
+      <label class="f">โหมดคำสั่งพิมพ์<select id="l-task"><option value="auto">อัตโนมัติ (แนะนำ)</option>${['B1','D110','B21_V1','D110M_V4','D11_V1'].map(t=>`<option ${L().task===t?'selected':''}>${t}</option>`).join('')}</select></label>
+    </div>
+    <p class="note" style="margin:10px 0 0">ใช้ได้กับ Chrome หรือ Edge บนคอมพิวเตอร์หรือ Android เปิด Bluetooth ที่เครื่อง แล้วกด "เครื่องพิมพ์ป้าย" มุมขวาบนเพื่อจับคู่ ถ้ากดพิมพ์แล้วเครื่องไม่ตอบสนอง ลองเปลี่ยนโหมดคำสั่งพิมพ์เป็น B1 หรือ D110</p>
+    <div class="prrow"><button class="btn" data-act="print-test">พิมพ์ป้ายทดสอบ</button></div>
+  </section>
+  <section class="card"><h2>ข้อมูล</h2>
+    <p class="note" style="margin:0 0 10px">ข้อมูลและรูปเก็บในเบราว์เซอร์เครื่องนี้เท่านั้น ไม่ถูกส่งขึ้นเว็บ ควรสำรองข้อมูลไว้เป็นระยะ และใช้ไฟล์สำรองย้ายข้อมูลไปเครื่องอื่น</p>
+    <div class="row"><label class="btn filebtn">นำเข้าไฟล์ข้อมูล / ไฟล์สำรอง<input type="file" accept=".json,application/json" id="importfile"></label>
+      <button class="btn" data-act="backup" ${state.assets.length?'':'disabled'}>ดาวน์โหลดไฟล์สำรอง</button>
+      <button class="btn danger" data-act="reset">${ui.resetArmed?'กดอีกครั้งเพื่อล้างข้อมูลทั้งหมด':'ล้างข้อมูลทั้งหมดในเครื่องนี้'}</button></div>
+  </section>`;
+}
+
+/* ---------- drawer ---------- */
+let drawer = null; // {mode, id, pending:[]}
+function openDrawer(mode, id){ drawer = {mode, id, pending:[]}; renderDrawer(); }
+function closeDrawer(){ drawer = null; $('#layer').innerHTML = ''; }
+function renderDrawer(){
+  if (!drawer) return;
+  const a = state.assets.find(x => x.id === drawer.id);
+  let head = '', body = '', foot = '';
+  if (drawer.mode === 'detail'){ [head, body, foot] = dDetail(a); }
+  else if (drawer.mode === 'form'){ [head, body, foot] = dForm(a); }
+  else if (drawer.mode === 'transfer'){ [head, body, foot] = dTransfer(a); }
+  else if (drawer.mode === 'dispose'){ [head, body, foot] = dDispose(a); }
+  else if (drawer.mode === 'capitalize'){ [head, body, foot] = dCapitalize(a); }
+  $('#layer').innerHTML = `<div class="scrim" data-act="close-drawer"></div><aside class="drawer" role="dialog" aria-modal="true">
+    <div class="dhead"><div style="min-width:0">${head}</div><button class="btn sm" data-act="close-drawer" aria-label="ปิด">ปิด</button></div>
+    <div class="dbody">${body}</div>${foot?`<div class="dfoot">${foot}</div>`:''}</aside>`;
+  if (drawer.mode === 'detail') drawPreview(a);
+}
+function drawQR(a){
+  const box = $('#qrbox'); if (!box) return;
+  try { const q = qrcode(0, 'M'); q.addData(a.code); q.make(); box.innerHTML = q.createSvgTag({cellSize:3, margin:0, scalable:true}); }
+  catch(e){ box.innerHTML = '<div class="note">QR</div>'; }
+}
+
+function dDetail(a){
+  const [s, cls] = statusOf(a);
+  const main = photoOf(a);
+  const sch = schedule(a);
+  const accNow = accDep(a, today);
+  const annual = depreciable(a) ? r2((a.cost - a.salvage)/a.life) : 0;
+  const head = `<div class="bigcode">${esc(a.code)}</div><div style="font-weight:500">${esc(a.name)}</div>
+    <div style="margin-top:6px"><span class="pill ${cls}">${s}</span>${a.src==='trcloud'?'<span class="ex">นำเข้าจาก TRCloud</span>':''}</div>`;
+  const body = `
+  <section class="gallery">
+    ${main ? `<img class="mainimg" src="${main}" alt="รูป ${esc(a.name)}">` : `${artHtml(a,'heroart')}<div class="note">ภาพประกอบตามประเภท · กด "+ เพิ่มรูป" เพื่อแนบรูปถ่ายจริง ป้ายรหัส หรือใบกำกับภาษี</div>`}
+    <div class="thumbs">${a.photos.map(p=>`<div class="tw ${p.primary?'primary':''}"><img src="${p.src}" alt="" data-primary="${p.id}" title="ตั้งเป็นรูปหลัก"><button class="x" data-delphoto="${p.id}" aria-label="ลบรูป">×</button></div>`).join('')}
+      <label class="btn sm upl">+ เพิ่มรูป<input type="file" accept="image/*" multiple id="addphotos"></label></div>
+    ${a.photos.length>1?'<div class="note">คลิกรูปเล็กเพื่อตั้งเป็นรูปหลัก</div>':''}
+  </section>
+  <section><h3>ข้อมูลสินทรัพย์</h3><dl class="facts">
+    <div><dt>หมวด</dt><dd>${a.cat} · ${esc(cat(a.cat).name)} (${cat(a.cat).acc})</dd></div>
+    <div><dt>สาขา / ที่ตั้ง</dt><dd>${esc(a.branch)}</dd></div>
+    <div><dt>ผู้ดูแล</dt><dd>${esc(a.custodian)||'–'}</dd></div>
+    <div><dt>ผู้ขาย</dt><dd>${esc(a.vendor)||'–'}</dd></div>
+    <div><dt>เลขที่ใบกำกับภาษี</dt><dd>${esc(a.invoice)||'–'}</dd></div>
+    <div><dt>วันที่ได้มา / พร้อมใช้</dt><dd>${thDate(a.acqDate)}</dd></div>
+    <div><dt>ราคาทุน</dt><dd>${fmt(a.cost)} บาท</dd></div>
+    <div><dt>มูลค่าซาก</dt><dd>${fmt(a.salvage)} บาท</dd></div>
+    <div><dt>อายุการใช้งาน</dt><dd>${depreciable(a)?a.life+' ปี · '+(r2(100/a.life))+'% ต่อปี':'ไม่คิดค่าเสื่อม'}</dd></div>
+    ${a.refs?`<div><dt>เอกสารใน TRCloud</dt><dd class="code" style="font-weight:500">${a.refs.map(esc).join(', ')}${a.po?' · '+esc(a.po):''}</dd></div>`:''}
+    ${a.legacy?`<div><dt>รหัสเดิม</dt><dd>${esc(a.legacy)}</dd></div>`:''}
+    ${a.transfer?`<div><dt>โอนไปเป็น</dt><dd class="code">${esc(a.transfer.toCode)}</dd></div>`:''}
+    ${a.fromCode?`<div><dt>โอนมาจาก</dt><dd class="code">${esc(a.fromCode)}</dd></div>`:''}
+    ${a.note?`<div><dt>หมายเหตุ</dt><dd>${esc(a.note)}</dd></div>`:''}
+  </dl></section>
+  ${depreciable(a)?`<section><h3>ค่าเสื่อมราคา ณ วันนี้</h3><dl class="facts">
+    <div><dt>ค่าเสื่อมต่อปี</dt><dd>${fmt(annual)}</dd></div>
+    <div><dt>ค่าเสื่อมสะสม</dt><dd>${fmt(accNow)}</dd></div>
+    <div><dt>มูลค่าสุทธิ</dt><dd>${fmt(nbv(a,today))}</dd></div>
+    <div><dt>ค่าเสื่อมครบวันที่</dt><dd>${thDate(fullyDate(a))}</dd></div>
+    ${a.disposal?`<div><dt>กำไร(ขาดทุน)จากการจำหน่าย</dt><dd>${fmt(a.disposal.proceeds - r2(a.cost - accDep(a,a.disposal.date)))}</dd></div>`:''}
+  </dl></section>
+  <section><h3>ตารางค่าเสื่อมรายปี (นับตามวัน ÷ 365)</h3><div class="scroll card" style="padding:4px 8px"><table>
+    <thead><tr><th>ปี</th><th class="n">ค่าเสื่อม</th><th class="n">สะสม</th><th class="n">มูลค่าสุทธิ</th></tr></thead>
+    <tbody>${sch.map(r=>`<tr><td>${r.y} (พ.ศ. ${r.y+543})</td><td class="n">${fmt(r.dep)}</td><td class="n">${fmt(r.acc)}</td><td class="n">${fmt(r.nbv)}</td></tr>`).join('')}</tbody>
+  </table></div></section>`:''}
+  <section><h3>ป้ายติดสินทรัพย์</h3>
+    <canvas class="lblprev" id="lblprev" width="400" height="240" aria-label="ตัวอย่างป้าย ${esc(a.code)}"></canvas>
+    <div class="prrow"><label class="f">จำนวนดวง<input type="number" id="copies" min="1" max="50" value="1"></label><button class="btn pri" data-act="print-one">พิมพ์ป้าย</button></div>
+    <p class="note" style="margin:8px 0 0">ภาพนี้คือสิ่งที่จะพิมพ์จริง ขนาด ${labelSizeText()} ตั้งขนาดได้ในหน้าตั้งค่า</p></section>
+  <section><h3>ประวัติ</h3><ul class="hist">${a.history.map(h=>`<li><span>${thDate(h.date)}</span><span>${esc(h.text)}</span></li>`).join('')}</ul></section>`;
+  const active = a.status === 'active', cip = a.status === 'cip';
+  const foot = `${active||cip?`<button class="btn" data-act="edit">แก้ไข</button><button class="btn" data-act="transfer">โอนย้าย</button>`:''}
+    ${cip?`<button class="btn pri" data-act="capitalize">โอนเข้าสินทรัพย์</button>`:''}
+    ${active?`<button class="btn danger" data-act="dispose">จำหน่าย / ตัดบัญชี</button>`:''}`;
+  return [head, body, foot];
+}
+
+function dForm(a){
+  const isNew = !a;
+  const v = a || {cat:'KT', name:'', branch:state.branches[0], custodian:'', vendor:'', invoice:'', acqDate:today, cost:'', salvage:1, life:cat('KT').life, legacy:'', note:''};
+  const head = `<div class="bigcode" id="codepreview">${isNew ? nextCode(v.cat, v.acqDate) : esc(v.code)}</div><div class="note">${isNew?'รหัสที่จะได้ ออกอัตโนมัติจากหมวดและวันที่ได้มา':'รหัสแก้ไขไม่ได้หลังบันทึก'}</div>`;
+  const body = `<form id="assetform" class="grid2" novalidate>
+    <label class="f">หมวดสินทรัพย์<select id="f-cat" ${isNew?'':'disabled'}>${state.cats.map(c=>`<option value="${c.code}" ${v.cat===c.code?'selected':''}>${c.code} · ${esc(c.name)}</option>`).join('')}</select></label>
+    <label class="f">วันที่ได้มา / พร้อมใช้<input type="date" id="f-date" value="${v.acqDate}" required></label>
+    <label class="f" style="grid-column:1/-1">ชื่อสินทรัพย์<input id="f-name" value="${esc(v.name)}" placeholder="เช่น ตู้แช่เย็น 2 ประตู สเตนเลส" required></label>
+    <label class="f">สาขา / ที่ตั้ง<input id="f-branch" list="branchlist" value="${esc(v.branch||'')}" placeholder="เช่น สำนักงานใหญ่"><datalist id="branchlist">${state.branches.map(b=>`<option value="${esc(b)}">`).join('')}</datalist></label>
+    <label class="f">ผู้ดูแล<input id="f-cust" value="${esc(v.custodian)}" placeholder="ชื่อหรือตำแหน่ง"></label>
+    <label class="f">ผู้ขาย<input id="f-vendor" value="${esc(v.vendor)}"></label>
+    <label class="f">เลขที่ใบกำกับภาษี<input id="f-inv" value="${esc(v.invoice)}"></label>
+    <label class="f">ราคาทุน (บาท ไม่รวม VAT)<input type="number" id="f-cost" min="0" step="0.01" value="${v.cost}" required></label>
+    <label class="f">มูลค่าซาก (บาท)<input type="number" id="f-salv" min="0" step="0.01" value="${v.salvage}"></label>
+    <label class="f">อายุการใช้งาน (ปี)<input type="number" id="f-life" min="0" max="50" step="1" value="${v.life}"></label>
+    <label class="f">รหัสเดิม (ถ้ามี)<input id="f-legacy" value="${esc(v.legacy)}"></label>
+    <label class="f" style="grid-column:1/-1">หมายเหตุ<textarea id="f-note" rows="2">${esc(v.note)}</textarea></label>
+    <div id="f-warn" style="grid-column:1/-1"></div>
+    <div style="grid-column:1/-1;display:grid;gap:8px"><span class="note">รูปภาพ</span>
+      <div class="thumbs" id="pendthumbs">${drawer.pending.map(p=>`<div class="tw"><img src="${p.src}" alt=""></div>`).join('')}
+      <label class="btn sm upl">+ เลือกรูป / ถ่ายรูป<input type="file" accept="image/*" multiple id="formphotos"></label></div></div>
+  </form>`;
+  const foot = `<button class="btn" data-act="${isNew?'close-drawer':'back'}">ยกเลิก</button><button class="btn pri" data-act="save">${isNew?'บันทึกและออกรหัส':'บันทึกการแก้ไข'}</button>`;
+  return [head, body, foot];
+}
+function dTransfer(a){
+  return [`<div class="bigcode">${esc(a.code)}</div><div>โอนย้ายสาขา / ผู้ดูแล</div>`,
+  `<div class="grid2">
+    <label class="f">สาขาปลายทาง<select id="t-branch">${state.branches.map(b=>`<option ${a.branch===b?'selected':''}>${esc(b)}</option>`).join('')}</select></label>
+    <label class="f">ผู้ดูแลใหม่<input id="t-cust" value="${esc(a.custodian)}"></label>
+    <label class="f">วันที่โอน<input type="date" id="t-date" value="${today}"></label>
+    <label class="f">เหตุผล<input id="t-note" placeholder="เช่น ย้ายไปเปิดสาขาใหม่"></label></div>
+   <p class="note">รหัสทรัพย์สินไม่เปลี่ยน ป้ายเดิมใช้ต่อได้</p>`,
+  `<button class="btn" data-act="back">ยกเลิก</button><button class="btn pri" data-act="do-transfer">บันทึกการโอน</button>`];
+}
+function dDispose(a){
+  return [`<div class="bigcode">${esc(a.code)}</div><div>จำหน่าย / ตัดบัญชี</div>`,
+  `<div class="grid2">
+    <label class="f">วันที่จำหน่าย<input type="date" id="x-date" value="${today}"></label>
+    <label class="f">วิธี<select id="x-kind"><option>ขาย</option><option>ตัดชำรุด / ทิ้ง</option><option>สูญหาย</option><option>บริจาค</option></select></label>
+    <label class="f">เงินที่ได้รับ (บาท ไม่รวม VAT)<input type="number" id="x-proc" min="0" step="0.01" value="0"></label>
+    <label class="f">อ้างอิงเอกสาร / ผู้อนุมัติ<input id="x-ref"></label></div>
+   <div class="card" id="x-calc"></div>`,
+  `<button class="btn" data-act="back">ยกเลิก</button><button class="btn pri" data-act="do-dispose">ยืนยันการจำหน่าย</button>`];
+}
+function dCapitalize(a){
+  return [`<div class="bigcode">${esc(a.code)}</div><div>โอนงานระหว่างก่อสร้างเข้าสินทรัพย์</div>`,
+  `<div class="grid2">
+    <label class="f">หมวดปลายทาง<select id="c-cat">${state.cats.filter(c=>c.dep!==false).map(c=>`<option value="${c.code}">${c.code} · ${esc(c.name)}</option>`).join('')}</select></label>
+    <label class="f">วันที่พร้อมใช้งาน<input type="date" id="c-date" value="${today}"></label>
+    <label class="f">อายุการใช้งาน (ปี)<input type="number" id="c-life" min="1" step="1" value="${cat('BD').life}"></label>
+    <label class="f">รหัสใหม่<input id="c-code" readonly></label></div>
+   <p class="note">ราคาทุน ${fmt(a.cost)} บาทโอนทั้งหมด รหัส CP เดิมจะปิดและลิงก์ไปที่รหัสใหม่</p>`,
+  `<button class="btn" data-act="back">ยกเลิก</button><button class="btn pri" data-act="do-capitalize">โอนเข้าสินทรัพย์</button>`];
+}
+
+/* ---------- photos ---------- */
+function readPhoto(file){
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => { const img = new Image(); img.onload = () => {
+      const max = 900, k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width*k); c.height = Math.round(img.height*k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      res({id:'p'+Date.now()+Math.random().toString(36).slice(2,6), src:c.toDataURL('image/jpeg', .72), primary:false});
+    }; img.onerror = rej; img.src = fr.result; };
+    fr.onerror = rej; fr.readAsDataURL(file);
+  });
+}
+async function readPhotos(files){ const out = []; for (const f of files){ try{ out.push(await readPhoto(f)); }catch(e){ toast('อ่านรูปไม่ได้: ' + f.name); } } return out; }
+
+
+/* ---------- label printing (NIIMBOT over Web Bluetooth) ---------- */
+const L = () => (state.label = Object.assign({size:'50x30', density:3, type:1, task:'auto'}, state.label || {}));
+const labelSizeText = () => L().size === '50x30' ? '50 × 30 มม.' : '50 × 15 มม. 2 ดวงต่อแผ่น';
+const PX = 8; // 203 dpi ≈ 8 dots per mm
+const PR = {client:null, busy:false, name:''};
+const F_TH = '"IBM Plex Sans Thai", Tahoma, sans-serif', F_MONO = '"IBM Plex Mono", "Courier New", monospace';
+
+async function fontsReady(list){
+  const txt = list.map(a => [a.code, a.name, a.branch].join(' ')).join(' ') + ' ทรัพย์สินของบริษัท';
+  try { await Promise.all(['400 18px ' + F_TH, '600 18px ' + F_TH, '600 24px ' + F_MONO].map(f => document.fonts.load(f, txt))); } catch(e) {}
+}
+function fitText(ctx, text, maxW, size, weight, family, min){
+  let s = size; ctx.font = `${weight} ${s}px ${family}`;
+  while (s > min && ctx.measureText(text).width > maxW){ s--; ctx.font = `${weight} ${s}px ${family}`; }
+  return s;
+}
+function ellipsize(ctx, text, maxW){
+  if (ctx.measureText(text).width <= maxW) return text;
+  const parts = Array.from(text); while (parts.length && ctx.measureText(parts.join('') + '…').width > maxW) parts.pop();
+  return parts.join('') + '…';
+}
+function wrapLines(ctx, text, maxW, maxLines){
+  const seg = (typeof Intl !== 'undefined' && Intl.Segmenter) ? Array.from(new Intl.Segmenter('th', {granularity:'word'}).segment(text), x => x.segment) : text.split(/(\s+)/);
+  const lines = []; let line = '';
+  for (let i = 0; i < seg.length; i++){
+    const tryL = line + seg[i];
+    if (ctx.measureText(tryL).width <= maxW || !line){ line = tryL; continue; }
+    lines.push(line.trim()); line = seg[i].trimStart();
+    if (lines.length === maxLines - 1){ line = seg.slice(i).join('').trim(); break; }
+  }
+  if (line) lines.push(line.trim());
+  if (lines.length > maxLines) lines.length = maxLines;
+  const last = lines.length - 1; if (last >= 0) lines[last] = ellipsize(ctx, lines[last], maxW);
+  return lines;
+}
+function drawQRAt(ctx, text, x, y, size){
+  const q = qrcode(0, 'M'); q.addData(text); q.make();
+  const n = q.getModuleCount(), cell = Math.floor(size / n), off = Math.floor((size - cell * n) / 2);
+  ctx.fillStyle = '#000';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) ctx.fillRect(x + off + c*cell, y + off + r*cell, cell, cell);
+}
+function roundRect(ctx, x, y, w, h, r){ ctx.beginPath(); ctx.moveTo(x+r, y); ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r); ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r); ctx.closePath(); }
+
+/* Full label 50×30 mm: border, QR left, four text lines right (same design as the sample sticker). */
+function drawFull(ctx, a, ox, oy){
+  const W = 50*PX, H = 30*PX;
+  ctx.lineWidth = 3; ctx.strokeStyle = '#000'; roundRect(ctx, ox+14+1.5, oy+14+1.5, W-28-3, H-28-3, 14); ctx.stroke();
+  const q = 140, qx = ox + 14 + 3 + 12, qy = oy + (H - q)/2;
+  drawQRAt(ctx, a.code, qx, qy, q);
+  const tx = qx + q + 12, tw = ox + W - 14 - 3 - 10 - tx;
+  ctx.fillStyle = '#000'; ctx.textBaseline = 'alphabetic';
+  ctx.font = `400 17px ${F_TH}`; const small = ellipsize(ctx, 'ทรัพย์สินของบริษัท', tw);
+  const cs = fitText(ctx, a.code, tw, 25, 600, F_MONO, 16);
+  ctx.font = `400 19px ${F_TH}`; const nm = wrapLines(ctx, a.name || '', tw, 2);
+  ctx.font = `600 18px ${F_TH}`; const br = ellipsize(ctx, a.branch || '', tw);
+  const lh = [24, cs + 8, ...nm.map(() => 24), 24], total = lh.reduce((x,y)=>x+y, 0) + 6;
+  let y = oy + (H - total)/2;
+  ctx.font = `400 17px ${F_TH}`; y += lh[0]; ctx.fillText(small, tx, y - 6);
+  ctx.font = `600 ${cs}px ${F_MONO}`; y += lh[1]; ctx.fillText(a.code, tx, y - 7);
+  ctx.font = `400 19px ${F_TH}`; nm.forEach(l => { y += 24; ctx.fillText(l, tx, y - 5); });
+  ctx.font = `600 18px ${F_TH}`; y += 24 + 6; ctx.fillText(br, tx, y - 5);
+}
+/* Compact label 50×15 mm: QR left, code / name / branch right. */
+function drawCompact(ctx, a, ox, oy){
+  const W = 50*PX, H = 15*PX, q = 96, qx = ox + 14, qy = oy + (H - q)/2;
+  drawQRAt(ctx, a.code, qx, qy, q);
+  const tx = qx + q + 12, tw = ox + W - 12 - tx;
+  ctx.fillStyle = '#000'; ctx.textBaseline = 'alphabetic';
+  const cs = fitText(ctx, a.code, tw, 26, 600, F_MONO, 16);
+  ctx.fillText(a.code, tx, oy + 38);
+  ctx.font = `400 18px ${F_TH}`; ctx.fillText(ellipsize(ctx, a.name || '', tw), tx, oy + 68);
+  ctx.font = `600 16px ${F_TH}`; ctx.fillText(ellipsize(ctx, a.branch || '', tw), tx, oy + 96);
+}
+/* One printed page = 50×30 mm. Full: one asset. Compact: two assets stacked. */
+function pageCanvas(items){
+  const c = document.createElement('canvas'); c.width = 50*PX; c.height = 30*PX;
+  const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+  if (L().size === '50x30') drawFull(ctx, items[0], 0, 0);
+  else items.forEach((a, i) => a && drawCompact(ctx, a, 0, i * 15*PX));
+  // thermal printers have no grey: threshold to pure black / white
+  const img = ctx.getImageData(0, 0, c.width, c.height), d = img.data;
+  for (let i = 0; i < d.length; i += 4){ const v = (d[i]*299 + d[i+1]*587 + d[i+2]*114) / 1000 < 150 ? 0 : 255; d[i] = d[i+1] = d[i+2] = v; d[i+3] = 255; }
+  ctx.putImageData(img, 0, 0);
+  return c;
+}
+function pagesFor(list){
+  if (L().size === '50x30') return list.map(a => [a]);
+  const out = []; for (let i = 0; i < list.length; i += 2) out.push([list[i], list[i+1]]); return out;
+}
+async function drawPreview(a){
+  const cv = $('#lblprev'); if (!cv) return;
+  await fontsReady([a]);
+  const src = pageCanvas(L().size === '50x30' ? [a] : [a, a]);
+  const ctx = cv.getContext('2d'); ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(src, 0, 0);
+}
+
+function updPr(){
+  const b = $('#prbtn'); if (!b) return;
+  const on = !!(PR.client && PR.client.isConnected());
+  b.dataset.state = PR.busy ? 'busy' : on ? 'on' : 'off';
+  b.querySelector('span').textContent = PR.busy ? 'กำลังพิมพ์…' : on ? (PR.name || 'เชื่อมต่อแล้ว') : 'เครื่องพิมพ์ป้าย';
+}
+function btSupportMsg(){
+  if (!window.isSecureContext) return 'ต้องเปิดเว็บผ่าน https จึงจะใช้ Bluetooth ได้';
+  if (!navigator.bluetooth) return 'เบราว์เซอร์นี้ใช้ Bluetooth ไม่ได้ ให้เปิดด้วย Chrome หรือ Edge บนคอมพิวเตอร์หรือ Android (iPhone/iPad ใช้ไม่ได้)';
+  if (!window.niimbluelib) return 'โหลดตัวเชื่อมต่อเครื่องพิมพ์ไม่สำเร็จ ลองรีเฟรชหน้า';
+  return '';
+}
+async function connectPrinter(){
+  const msg = btSupportMsg(); if (msg){ toast(msg); return false; }
+  const client = new niimbluelib.NiimbotBluetoothClient();
+  client.on('disconnect', () => { PR.client = null; PR.name = ''; updPr(); });
+  try {
+    const info = await client.connect();
+    PR.client = client;
+    const meta = client.getModelMetadata();
+    PR.name = (meta && meta.model) || (info && info.deviceName) || 'NIIMBOT';
+    updPr(); toast('เชื่อมต่อ ' + PR.name + ' แล้ว');
+    return true;
+  } catch(e){
+    console.error(e); PR.client = null; updPr();
+    if (!/cancel|chosen/i.test(String(e && e.message))) toast('เชื่อมต่อไม่สำเร็จ: ' + (e && e.message || e));
+    return false;
+  }
+}
+async function togglePrinter(){
+  if (PR.busy) return;
+  if (PR.client && PR.client.isConnected()){ try { await PR.client.disconnect(); } catch(e){} PR.client = null; PR.name = ''; updPr(); toast('ตัดการเชื่อมต่อแล้ว'); return; }
+  await connectPrinter();
+}
+async function printAssets(list){
+  list = list.filter(Boolean);
+  if (!list.length || PR.busy) return;
+  if (!(PR.client && PR.client.isConnected()) && !(await connectPrinter())) return;
+  const client = PR.client, lib = niimbluelib, cfg = L();
+  const meta = client.getModelMetadata();
+  const taskName = cfg.task !== 'auto' ? cfg.task : (client.getPrintTaskType() || 'B1');
+  const dir = (meta && meta.printDirection) || 'top';
+  await fontsReady(list);
+  const pages = pagesFor(list);
+  PR.busy = true; updPr();
+  const task = client.protocol.newPrintTask(taskName, {totalPages: pages.length, density: cfg.density, labelType: cfg.type});
+  try {
+    await task.printInit();
+    for (let i = 0; i < pages.length; i++){
+      const enc = lib.ImageEncoder.encodeCanvas(pageCanvas(pages[i]), lib.PageColorType.SingleColor, dir);
+      await task.printPage(enc, 1);
+      await task.waitForPageFinished();
+      $('#prbtn span').textContent = `กำลังพิมพ์ ${i+1}/${pages.length}`;
+    }
+    await task.waitForFinished();
+    toast(`พิมพ์เสร็จ ${pages.length} แผ่น`);
+    new Set(list.filter(a => a.id && a.history)).forEach(a => a.history.push({date: today, text: 'พิมพ์ป้ายสินทรัพย์'}));
+    save();
+  } catch(e){
+    console.error(e); toast('พิมพ์ไม่สำเร็จ: ' + (e && e.message || e));
+  } finally {
+    try { await task.printEnd(); } catch(e){}
+    PR.busy = false; updPr();
+    if (drawer && drawer.mode === 'detail') renderDrawer();
+  }
+}
+
+function addBranch(b){ b = String(b||'').trim(); if (b && !state.branches.includes(b)){ state.branches.push(b); state.branches.sort((x,y)=>x.localeCompare(y,'th')); } return b; }
+/* ---------- import / backup ---------- */
+async function importFile(file){
+  let data;
+  try { data = JSON.parse(await file.text()); } catch(e){ return toast('อ่านไฟล์ไม่ได้ ต้องเป็นไฟล์ .json'); }
+  if (data && data.format === 'fa-register-import' && Array.isArray(data.assets)){
+    if (state.assets.length && !confirm('แทนที่ข้อมูลเดิมในเครื่องนี้ ' + state.assets.length + ' รายการ ด้วยข้อมูลจากไฟล์?')) return;
+    TR = data.assets; TR_SKIPPED = Array.isArray(data.skipped) ? data.skipped : [];
+    state = seed(); save(); render(); toast('นำเข้า ' + state.assets.length + ' รายการแล้ว');
+  } else if (data && data.format === 'fa-register-backup' && data.state && Array.isArray(data.state.assets)){
+    if (state.assets.length && !confirm('แทนที่ข้อมูลเดิมในเครื่องนี้ด้วยไฟล์สำรอง?')) return;
+    state = data.state; save(); render(); toast('กู้คืนจากไฟล์สำรอง ' + state.assets.length + ' รายการแล้ว');
+  } else toast('ไฟล์นี้ไม่ใช่ไฟล์ข้อมูลทะเบียนสินทรัพย์');
+}
+function backup(){
+  const blob = new Blob([JSON.stringify({format:'fa-register-backup', version:1, saved:new Date().toISOString(), state})], {type:'application/json'});
+  const u = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = u; a.download = 'asset-register-backup-' + today + '.json'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 1000);
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', e => {
+  const nb = e.target.closest('#nav button'); if (nb){ state.view = nb.dataset.view; ui.resetArmed = false; save(); render(); return; }
+  const fc = e.target.closest('[data-fcat]'); if (fc){ ui.fcat = fc.dataset.fcat; ui.limit = 48; render(); return; }
+  const gc = e.target.closest('[data-gocat]'); if (gc){ ui.fcat = gc.dataset.gocat; ui.fbranch = ''; ui.q=''; ui.fstatus=''; ui.limit = 48; state.view = 'register'; render(); window.scrollTo(0,0); return; }
+  const gb = e.target.closest('[data-gobranch]'); if (gb){ ui.fbranch = gb.dataset.gobranch; ui.fcat = ''; ui.q=''; ui.fstatus=''; ui.limit = 48; state.view = 'register'; render(); window.scrollTo(0,0); return; }
+  const md = e.target.closest('[data-mode]'); if (md){ ui.mode = md.dataset.mode; render(); return; }
+  const tr = e.target.closest('[data-open]'); if (tr){ openDrawer('detail', tr.dataset.open); return; }
+  const pp = e.target.closest('[data-primary]'); if (pp && drawer){ const a = cur(); a.photos.forEach(p => p.primary = p.id === pp.dataset.primary); save(); renderDrawer(); render(); return; }
+  const dp = e.target.closest('[data-delphoto]'); if (dp && drawer){ const a = cur(); a.photos = a.photos.filter(p => p.id !== dp.dataset.delphoto);
+    if (a.photos.length && !a.photos.some(p=>p.primary)) a.photos[0].primary = true; save(); renderDrawer(); render(); return; }
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const act = b.dataset.act;
+  if (act === 'close-drawer') closeDrawer();
+  else if (act === 'new') openDrawer('form', null);
+  else if (act === 'edit') { drawer.mode = 'form'; renderDrawer(); }
+  else if (act === 'transfer') { drawer.mode = 'transfer'; renderDrawer(); }
+  else if (act === 'dispose') { drawer.mode = 'dispose'; renderDrawer(); updDispose(); }
+  else if (act === 'capitalize') { drawer.mode = 'capitalize'; renderDrawer(); updCap(); }
+  else if (act === 'back') { drawer.id ? (drawer.mode = 'detail', renderDrawer()) : closeDrawer(); }
+  else if (act === 'save') saveForm();
+  else if (act === 'do-transfer') doTransfer();
+  else if (act === 'do-dispose') doDispose();
+  else if (act === 'do-capitalize') doCapitalize();
+  else if (act === 'more') { ui.limit += 48; render(); }
+  else if (act === 'close') { const ym = ui.month; state.closed = state.closed.includes(ym) ? state.closed.filter(x=>x!==ym) : state.closed.concat(ym); save(); render(); toast(state.closed.includes(ym) ? 'ปิดงวด '+thMonth(ym)+' แล้ว' : 'เปิดงวดอีกครั้ง'); }
+  else if (act === 'reset') { if (!ui.resetArmed){ ui.resetArmed = true; render(); return; } TR = []; TR_SKIPPED = []; state = seed(); state.view = 'settings'; ui.resetArmed = false; save(); render(); toast('ล้างข้อมูลในเครื่องนี้แล้ว'); }
+  else if (act === 'printer') togglePrinter();
+  else if (act === 'print-one') { const n = Math.max(1, Math.min(50, parseInt($('#copies').value,10) || 1)); printAssets(Array(n).fill(cur())); }
+  else if (act === 'print-filtered') { const rows = filtered(); if (rows.length > 20 && !confirm('พิมพ์ป้าย ' + rows.length + ' ดวง?')) return; printAssets(rows); }
+  else if (act === 'print-test') printAssets([state.assets[0] || {code:'OF2601/0001', name:'ป้ายทดสอบ เครื่องพิมพ์ NIIMBOT', branch:'สำนักงานใหญ่'}]);
+  else if (act === 'backup') backup();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && drawer) closeDrawer();
+  if (e.key === 'Enter' && e.target.matches('tr[data-open]')) openDrawer('detail', e.target.dataset.open);
+});
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.id === 'asof' && t.value){ ui.asOf = t.value; render(); }
+  else if (t.id === 'q'){ ui.q = t.value; const pos = t.selectionStart; render(); const q = $('#q'); q.focus(); try{ q.setSelectionRange(pos,pos); }catch(_){} }
+  else if (t.id === 'month' && t.value){ ui.month = t.value; render(); }
+  else if (t.dataset.life !== undefined){ const v = parseInt(t.value,10); if (v > 0){ state.cats[+t.dataset.life].life = v; save(); } }
+  else if (t.id === 'threshold'){ state.threshold = +t.value || 0; save(); }
+  else if (t.id === 'f-date' || t.id === 'f-cost'){ updForm(); }
+  else if (t.id && t.id.startsWith('x-')) updDispose();
+  else if (t.id === 'c-date') updCap();
+});
+document.addEventListener('change', async e => {
+  const t = e.target;
+  if (t.id === 'fcat'){ ui.fcat = t.value; render(); }
+  else if (t.id === 'fbranch'){ ui.fbranch = t.value; ui.limit = 48; render(); }
+  else if (t.id === 'fstatus'){ ui.fstatus = t.value; render(); }
+  else if (t.id === 'importfile' && t.files.length){ importFile(t.files[0]); t.value = ''; }
+  else if (t.id === 'l-size'){ L().size = t.value; save(); }
+  else if (t.id === 'l-type'){ L().type = +t.value; save(); }
+  else if (t.id === 'l-task'){ L().task = t.value; save(); }
+  else if (t.id === 'l-density'){ L().density = Math.max(1, Math.min(5, parseInt(t.value,10)||3)); t.value = L().density; save(); }
+  else if (t.id === 'f-cat'){ $('#f-life').value = cat(t.value).life; $('#f-salv').value = cat(t.value).dep === false ? 0 : 1; updForm(); }
+  else if (t.id === 'c-cat'){ $('#c-life').value = cat(t.value).life; updCap(); }
+  else if (t.id === 'addphotos' && t.files.length){
+    const a = cur(); const ps = await readPhotos(t.files); a.photos.push(...ps);
+    if (!a.photos.some(p=>p.primary) && a.photos.length) a.photos[0].primary = true;
+    a.history.push({date: today, text: 'เพิ่มรูปภาพ ' + ps.length + ' รูป'});
+    if (!save()){ a.photos.splice(a.photos.length - ps.length); a.history.pop(); }
+    renderDrawer(); render();
+  }
+  else if (t.id === 'formphotos' && t.files.length){
+    const ps = await readPhotos(t.files); drawer.pending.push(...ps);
+    $('#pendthumbs').querySelectorAll('.tw').forEach(n=>n.remove());
+    $('#pendthumbs').insertAdjacentHTML('afterbegin', drawer.pending.map(p=>`<div class="tw"><img src="${p.src}" alt=""></div>`).join(''));
+  }
+});
+const cur = () => state.assets.find(x => x.id === drawer.id);
+
+function updForm(){
+  if (!drawer || drawer.mode !== 'form') return;
+  if (!drawer.id){ const c = $('#f-cat').value, d = $('#f-date').value || today; $('#codepreview').textContent = nextCode(c, d); }
+  const cost = +$('#f-cost').value, c = $('#f-cat').value;
+  $('#f-warn').innerHTML = cost && cat(c).dep !== false && cost < state.threshold ? `<div class="warnbox">ราคาต่ำกว่าเกณฑ์ ${fmt(state.threshold)} บาท ควรบันทึกเป็นวัสดุสิ้นเปลือง (1306000) แทนการลงทะเบียน</div>` : '';
+}
+function saveForm(){
+  const name = $('#f-name').value.trim(), date = $('#f-date').value, cost = parseFloat($('#f-cost').value);
+  const c = $('#f-cat').value, life = parseInt($('#f-life').value,10) || 0, salvage = parseFloat($('#f-salv').value) || 0;
+  if (!name) return toast('กรอกชื่อสินทรัพย์');
+  if (!date) return toast('เลือกวันที่ได้มา');
+  if (!(cost > 0)) return toast('ราคาทุนต้องมากกว่า 0');
+  if (cat(c).dep !== false && !(life > 0)) return toast('อายุการใช้งานต้องอย่างน้อย 1 ปี');
+  if (salvage >= cost) return toast('มูลค่าซากต้องน้อยกว่าราคาทุน');
+  const fields = {name, acqDate:date, cost, life, salvage, branch:addBranch($('#f-branch').value), custodian:$('#f-cust').value.trim(), vendor:$('#f-vendor').value.trim(),
+    invoice:$('#f-inv').value.trim(), legacy:$('#f-legacy').value.trim(), note:$('#f-note').value.trim()};
+  if (drawer.id){
+    const a = cur(); Object.assign(a, fields);
+    if (drawer.pending.length){ a.photos.push(...drawer.pending); if (!a.photos.some(p=>p.primary)) a.photos[0].primary = true; }
+    a.history.push({date: today, text: 'แก้ไขข้อมูล'});
+    save(); drawer.mode = 'detail'; drawer.pending = []; renderDrawer(); render(); toast('บันทึกการแก้ไขแล้ว');
+  } else {
+    const a = Object.assign({id:'a'+(++state.seq), code: nextCode(c, date), cat:c, status: cat(c).dep === false ? 'cip' : 'active', photos: drawer.pending, sample:false,
+      history:[{date: today, text:'ลงทะเบียนสินทรัพย์'}]}, fields);
+    if (a.photos.length) a.photos[0].primary = true;
+    state.assets.push(a);
+    if (!save()){ state.assets.pop(); return; }
+    drawer = {mode:'detail', id:a.id, pending:[]}; state.view = 'register'; render(); renderDrawer(); toast('ลงทะเบียน ' + a.code + ' แล้ว');
+  }
+}
+function doTransfer(){
+  const a = cur(), br = $('#t-branch').value, cu = $('#t-cust').value.trim(), d = $('#t-date').value || today, n = $('#t-note').value.trim();
+  a.history.push({date:d, text:`โอนจาก ${a.branch}${a.custodian?' ('+a.custodian+')':''} ไป ${br}${cu?' ('+cu+')':''}${n?' · '+n:''}`});
+  a.branch = br; a.custodian = cu; save(); drawer.mode = 'detail'; renderDrawer(); render(); toast('บันทึกการโอนแล้ว');
+}
+function updDispose(){
+  const box = $('#x-calc'); if (!box) return; const a = cur(), d = $('#x-date').value || today, p = parseFloat($('#x-proc').value) || 0;
+  const acc = accDep(Object.assign({}, a, {disposal:null}), d), bv = r2(a.cost - acc), gl = r2(p - bv);
+  box.innerHTML = `<dl class="facts"><div><dt>ราคาทุน</dt><dd>${fmt(a.cost)}</dd></div><div><dt>ค่าเสื่อมสะสมถึงวันจำหน่าย</dt><dd>${fmt(acc)}</dd></div>
+    <div><dt>มูลค่าสุทธิ</dt><dd>${fmt(bv)}</dd></div><div><dt>${gl>=0?'กำไร':'ขาดทุน'}จากการจำหน่าย</dt><dd style="color:var(${gl>=0?'--good':'--bad'})">${fmt(Math.abs(gl))}</dd></div></dl>`;
+}
+function doDispose(){
+  const a = cur(), d = $('#x-date').value, p = parseFloat($('#x-proc').value) || 0, k = $('#x-kind').value, ref = $('#x-ref').value.trim();
+  if (!d || d < a.acqDate) return toast('วันที่จำหน่ายต้องไม่ก่อนวันที่ได้มา');
+  a.status = 'disposed'; a.disposal = {date:d, proceeds:p, kind:k};
+  a.history.push({date:d, text:`จำหน่าย (${k})${p?' รับเงิน '+fmt(p)+' บาท':''}${ref?' · '+ref:''}`});
+  save(); drawer.mode = 'detail'; renderDrawer(); render(); toast(a.code + ' จำหน่ายแล้ว');
+}
+function updCap(){ const el = $('#c-code'); if (el) el.value = nextCode($('#c-cat').value, $('#c-date').value || today); }
+function doCapitalize(){
+  const a = cur(), c = $('#c-cat').value, d = $('#c-date').value, life = parseInt($('#c-life').value,10);
+  if (!d || d < a.acqDate) return toast('วันที่พร้อมใช้ต้องไม่ก่อนวันเริ่มงาน');
+  if (!(life > 0)) return toast('อายุการใช้งานต้องอย่างน้อย 1 ปี');
+  const code = nextCode(c, d);
+  const n = {id:'a'+(++state.seq), code, cat:c, name:a.name.replace('งานก่อสร้าง','').trim() || a.name, branch:a.branch, custodian:a.custodian, vendor:a.vendor, invoice:a.invoice,
+    acqDate:d, cost:a.cost, salvage:1, life, status:'active', photos:a.photos.map(p=>Object.assign({},p)), legacy:'', note:'', sample:false, fromCode:a.code,
+    history:[{date:d, text:'โอนจากงานระหว่างก่อสร้าง ' + a.code}]};
+  a.status = 'transferred'; a.transfer = {date:d, toCode:code}; a.history.push({date:d, text:'โอนเข้าสินทรัพย์ ' + code});
+  state.assets.push(n); save(); drawer = {mode:'detail', id:n.id, pending:[]}; renderDrawer(); render(); toast('ออกรหัส ' + code + ' แล้ว');
+}
+
+render();
+})();
+</script>
+</body>
+</html>
